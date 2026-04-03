@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FDTD Results Viewer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background: #1a1a2e; color: #eee; }
+  h1 { color: #e94560; margin-bottom: 4px; }
+  h2 { color: #0f3460; background: #e94560; padding: 4px 8px; border-radius: 4px; margin-top: 24px; }
+  h3 { color: #ccc; }
+  #load-section { margin-bottom: 20px; }
+  input[type=file] { padding: 6px; background: #16213e; color: #eee; border: 1px solid #0f3460; border-radius: 4px; }
+  .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 16px; }
+  .chart-box { background: #16213e; border-radius: 8px; padding: 12px; }
+  canvas { max-height: 400px; }
+  .polar-box { background: #16213e; border-radius: 8px; padding: 12px; aspect-ratio: 1; max-width: 480px; }
+  .polar-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  #meta { font-size: 12px; color: #aaa; margin-bottom: 12px; }
+  .no-data { color: #888; font-style: italic; }
+</style>
+</head>
+<body>
+<h1>FDTD Simulation Results</h1>
+<div id="load-section">
+  <label>Load results JSON: <input type="file" id="fileInput" accept=".json"></label>
+  <span id="filename" style="margin-left:12px;color:#aaa;"></span>
+</div>
+<div id="meta"></div>
+<div id="content"></div>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('filename').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      renderResults(data);
+    } catch(err) {
+      alert('Failed to parse JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+const charts = [];
+
+function destroyCharts() {
+  charts.forEach(c => c.destroy());
+  charts.length = 0;
+}
+
+function renderResults(data) {
+  destroyCharts();
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+
+  // Meta
+  if (data.meta) {
+    const m = data.meta;
+    document.getElementById('meta').innerHTML =
+      `Generated: ${m.generated || '—'} &nbsp;|&nbsp; ` +
+      `Time steps: ${m.numberOfTimeSteps || '—'} &nbsp;|&nbsp; ` +
+      `dt = ${m.dt ? m.dt.toExponential(3) + ' s' : '—'} &nbsp;|&nbsp; ` +
+      `Freq points: ${m.frequencies_Hz ? m.frequencies_Hz.length : '—'}`;
+  }
+
+  // ── S-Parameters ─────────────────────────────────────────────────────────
+  if (data.sparams && data.sparams.length > 0) {
+    content.insertAdjacentHTML('beforeend', '<h2>S-Parameters</h2>');
+    const grid = document.createElement('div');
+    grid.className = 'chart-grid';
+    content.appendChild(grid);
+
+    for (const sp of data.sparams) {
+      const box = document.createElement('div');
+      box.className = 'chart-box';
+      box.innerHTML = `<h3>${sp.label}</h3><canvas id="sp_${sp.label}"></canvas>`;
+      grid.appendChild(box);
+
+      const ctx = box.querySelector('canvas').getContext('2d');
+      const freqs = sp.frequencies_GHz;
+      const c = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: freqs,
+          datasets: [
+            {
+              label: `|${sp.label}| (dB)`,
+              data: sp.magnitude_dB,
+              borderColor: '#e94560',
+              backgroundColor: 'transparent',
+              tension: 0.2,
+              yAxisID: 'y1',
+              pointRadius: 0,
+            },
+            {
+              label: `∠${sp.label} (°)`,
+              data: sp.phase_deg,
+              borderColor: '#4fc3f7',
+              backgroundColor: 'transparent',
+              tension: 0.2,
+              yAxisID: 'y2',
+              pointRadius: 0,
+              borderDash: [4, 4],
+            },
+          ],
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Frequency (GHz)', color: '#ccc' }, ticks: { color: '#aaa', maxTicksLimit: 10 }, grid: { color: '#234' } },
+            y1: { title: { display: true, text: 'Magnitude (dB)', color: '#e94560' }, position: 'left', ticks: { color: '#e94560' }, grid: { color: '#234' } },
+            y2: { title: { display: true, text: 'Phase (°)', color: '#4fc3f7' }, position: 'right', ticks: { color: '#4fc3f7' }, grid: { drawOnChartArea: false } },
+          },
+          plugins: { legend: { labels: { color: '#ccc' } } },
+        },
+      });
+      charts.push(c);
+    }
+  }
+
+  // ── Farfield Patterns ─────────────────────────────────────────────────────
+  if (data.farfield && data.farfield.length > 0) {
+    content.insertAdjacentHTML('beforeend', '<h2>Radiation Patterns</h2>');
+    const grid = document.createElement('div');
+    grid.className = 'polar-grid';
+    content.appendChild(grid);
+
+    for (const ff of data.farfield) {
+      const box = document.createElement('div');
+      box.className = 'polar-box';
+      const title = `${ff.plane.toUpperCase()} plane, f = ${ff.freq_GHz.toFixed(3)} GHz`;
+      box.innerHTML = `<h3>${title}</h3><canvas></canvas>`;
+      grid.appendChild(box);
+
+      const anglesRad = ff.angles_deg.map(a => a * Math.PI / 180);
+      const pat1 = ff.dataTheta_dB;
+      const pat2 = ff.dataPhi_dB;
+
+      // Build Cartesian polar points
+      const pts1 = [], pts2 = [];
+      for (let i = 0; i < anglesRad.length; i++) {
+        const a = anglesRad[i];
+        if (ff.plane === 'xy') {
+          // constant theta = 90°: x=r*cos(phi), y=r*sin(phi)
+          pts1.push({ x: pat1[i] * Math.cos(a), y: pat1[i] * Math.sin(a) });
+          pts2.push({ x: pat2[i] * Math.cos(a), y: pat2[i] * Math.sin(a) });
+        } else {
+          // constant phi = 0°: x=-r*cos(th+pi/2), y=r*sin(th+pi/2)
+          const ang = a + Math.PI / 2;
+          pts1.push({ x: -pat1[i] * Math.cos(ang), y: pat1[i] * Math.sin(ang) });
+          pts2.push({ x: -pat2[i] * Math.cos(ang), y: pat2[i] * Math.sin(ang) });
+        }
+      }
+      // Close loops
+      pts1.push(pts1[0]); pts2.push(pts2[0]);
+
+      const maxVal = Math.max(...pat1, ...pat2);
+      const minVal = Math.min(...pat1, ...pat2);
+      const range = maxVal - minVal || 1;
+
+      const ctx = box.querySelector('canvas').getContext('2d');
+      const c = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            { label: `D_θ`, data: pts1, borderColor: '#4fc3f7', backgroundColor: 'transparent', showLine: true, fill: false, pointRadius: 0 },
+            { label: `D_φ`, data: pts2, borderColor: '#ff7043', backgroundColor: 'transparent', showLine: true, fill: false, pointRadius: 0, borderDash: [5, 5] },
+          ],
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          aspectRatio: 1,
+          scales: {
+            x: { display: false },
+            y: { display: false },
+          },
+          plugins: {
+            legend: { labels: { color: '#ccc' } },
+            title: { display: false },
+          },
+        },
+      });
+      charts.push(c);
+    }
+  }
+
+  // ── Time-Domain Voltages ──────────────────────────────────────────────────
+  if (data.timeDomain && data.timeDomain.voltages && data.timeDomain.voltages.length > 0) {
+    content.insertAdjacentHTML('beforeend', '<h2>Sampled Voltages (Time Domain)</h2>');
+    const grid = document.createElement('div');
+    grid.className = 'chart-grid';
+    content.appendChild(grid);
+
+    for (const v of data.timeDomain.voltages) {
+      const box = document.createElement('div');
+      box.className = 'chart-box';
+      box.innerHTML = `<h3>${v.label}</h3><canvas></canvas>`;
+      grid.appendChild(box);
+
+      const ctx = box.querySelector('canvas').getContext('2d');
+      const c = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: v.time_ns,
+          datasets: [{ label: v.label + ' (V)', data: v.values, borderColor: '#a5d6a7', backgroundColor: 'transparent', tension: 0, pointRadius: 0 }],
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Time (ns)', color: '#ccc' }, ticks: { color: '#aaa', maxTicksLimit: 10 }, grid: { color: '#234' } },
+            y: { title: { display: true, text: 'Voltage (V)', color: '#ccc' }, ticks: { color: '#aaa' }, grid: { color: '#234' } },
+          },
+          plugins: { legend: { labels: { color: '#ccc' } } },
+        },
+      });
+      charts.push(c);
+    }
+  }
+
+  if (!data.sparams?.length && !data.farfield?.length) {
+    content.innerHTML = '<p class="no-data">No data to display. Load a simulation results JSON file.</p>';
+  }
+}
+</script>
+</body>
+</html>

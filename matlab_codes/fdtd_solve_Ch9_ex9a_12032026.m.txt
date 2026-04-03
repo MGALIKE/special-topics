@@ -1,0 +1,3368 @@
+% Example 9.4.1 - Inverted-F antenna page 309 
+
+%initialize the matlab workspace
+clear all; close all; clc;
+
+%define the problem
+% define_problem_space_parameters_ex_9a
+disp('defining the problem space parameters');
+
+% maximum number of time steps to run FDTD simulation
+number_of_time_steps = 7000; 
+
+% A factor that determines duration of a time step
+% wrt CFL limit
+courant_factor = 0.9;
+
+% A factor determining the accuracy limit of FDTD results
+number_of_cells_per_wavelength = 20;    
+
+% Dimensions of a unit cell in x, y, and z directions (meters)
+dx = 0.262e-3;    
+dy = 0.4e-3;   
+dz = 0.4e-3;
+
+% ==<boundary conditions>========
+% Here we define the boundary conditions parameters 
+% 'pec' : perfect electric conductor
+% 'cpml' : conlvolutional PML
+% if cpml_number_of_cells is less than zero
+% CPML extends inside of the domain rather than outwards
+
+boundary.type_xn = 'cpml';
+boundary.air_buffer_number_of_cells_xn = 10;
+boundary.cpml_number_of_cells_xn = 8;
+
+boundary.type_xp = 'cpml';
+boundary.air_buffer_number_of_cells_xp = 10;
+boundary.cpml_number_of_cells_xp = 8;
+
+boundary.type_yn = 'cpml';
+boundary.air_buffer_number_of_cells_yn = 10;
+boundary.cpml_number_of_cells_yn = 8;
+
+boundary.type_yp = 'cpml';
+boundary.air_buffer_number_of_cells_yp = 10;
+boundary.cpml_number_of_cells_yp = 8;
+
+boundary.type_zn = 'cpml';
+boundary.air_buffer_number_of_cells_zn = 10;
+boundary.cpml_number_of_cells_zn = 8;
+
+boundary.type_zp = 'cpml';
+boundary.air_buffer_number_of_cells_zp = 10;
+boundary.cpml_number_of_cells_zp = 8;
+
+boundary.cpml_order = 3; 
+boundary.cpml_sigma_factor = 1.3;
+boundary.cpml_kappa_max = 7;
+boundary.cpml_alpha_min = 0;
+boundary.cpml_alpha_max = 0.05;
+
+% ===<material types>============
+% Here we define and initialize the arrays of material types
+% eps_r   : relative permittivity
+% mu_r    : relative permeability
+% sigma_e : electric conductivity
+% sigma_m : magnetic conductivity
+
+% air
+material_types(1).eps_r   = 1;
+material_types(1).mu_r    = 1;
+material_types(1).sigma_e = 0;
+material_types(1).sigma_m = 0; 
+material_types(1).color   = [1 1 1];
+
+% PEC : perfect electric conductor
+material_types(2).eps_r   = 1;
+material_types(2).mu_r    = 1;
+material_types(2).sigma_e = 1e10;
+material_types(2).sigma_m = 0; 
+material_types(2).color   = [1 0 0];
+
+% PMC : perfect magnetic conductor
+material_types(3).eps_r   = 1;
+material_types(3).mu_r    = 1;
+material_types(3).sigma_e = 0;
+material_types(3).sigma_m = 1e10;
+material_types(3).color   = [0 1 0];
+
+% substrate 
+material_types(4).eps_r   = 2.2;
+material_types(4).mu_r    = 1;
+material_types(4).sigma_e = 0;
+material_types(4).sigma_m = 0; 
+material_types(4).color   = [0 0 1];
+
+% index of material types defining air, PEC, and PMC 
+material_type_index_air = 1;
+material_type_index_pec = 2;
+material_type_index_pmc = 3;
+
+
+%define_geometry_ex_9a;
+disp('defining the problem geometry');
+
+bricks  = [];
+spheres = [];
+
+% define substrate
+bricks(1).min_x = -0.787e-3;
+bricks(1).min_y = 0;
+bricks(1).min_z = 0;
+bricks(1).max_x = 0;
+bricks(1).max_y = 40e-3;
+bricks(1).max_z = 40e-3;
+bricks(1).material_type = 4; 
+
+bricks(2).min_x = 0;
+bricks(2).min_y = 0;
+bricks(2).min_z = 24e-3;
+bricks(2).max_x = 0;
+bricks(2).max_y = 28.4e-3;
+bricks(2).max_z = 26.4e-3;
+bricks(2).material_type = 2; 
+
+bricks(3).min_x = 0;
+bricks(3).min_y = 16e-3;
+bricks(3).min_z = 30e-3;
+bricks(3).max_x = 0;
+bricks(3).max_y = 28.4e-3;
+bricks(3).max_z = 32.4e-3;
+bricks(3).material_type = 2; 
+
+bricks(4).min_x = 0;
+bricks(4).min_y = 26e-3;
+bricks(4).min_z = 8.4e-3;
+bricks(4).max_x = 0;
+bricks(4).max_y = 28.4e-3;
+bricks(4).max_z = 32.4e-3;
+bricks(4).material_type = 2; 
+
+bricks(5).min_x = 0;
+bricks(5).min_y = 20.8e-3;
+bricks(5).min_z = 16e-3;
+bricks(5).max_x = 0;
+bricks(5).max_y = 23.2e-3;
+bricks(5).max_z = 32.4e-3;
+bricks(5).material_type = 2; 
+
+bricks(6).min_x = -0.787e-3;
+bricks(6).min_y = 16e-3;
+bricks(6).min_z = 30e-3;
+bricks(6).max_x = 0;
+bricks(6).max_y = 16e-3;
+bricks(6).max_z = 32.4e-3;
+bricks(6).material_type = 2; 
+
+bricks(7).min_x = -0.787e-3;
+bricks(7).min_y = 0;
+bricks(7).min_z = 0;
+bricks(7).max_x = -0.787e-3;
+bricks(7).max_y = 16e-3;
+bricks(7).max_z = 40e-3;
+bricks(7).material_type = 2; 
+
+
+%define_source_and_lumped_elements_ex_9a;
+
+disp('defining sources and lumped element components');
+
+voltage_sources = [];
+current_sources = [];
+diodes = [];
+resistors = [];
+inductors = [];
+capacitors = [];
+
+% define source waveform types and parameters
+waveforms.gaussian(1).number_of_cells_per_wavelength = 0; 
+waveforms.gaussian(2).number_of_cells_per_wavelength = 15; 
+
+% voltage sources 
+% direction: 'xp', 'xn', 'yp', 'yn', 'zp', or 'zn'
+% resistance : ohms, magitude   : volts
+voltage_sources(1).min_x = -0.787e-3;
+voltage_sources(1).min_y = 0;
+voltage_sources(1).min_z =  24e-3;
+voltage_sources(1).max_x = 0;
+voltage_sources(1).max_y = 0;
+voltage_sources(1).max_z =  26.4e-3;
+voltage_sources(1).direction = 'xp';
+voltage_sources(1).resistance = 50;
+voltage_sources(1).magnitude = 1;
+voltage_sources(1).waveform_type = 'gaussian';
+voltage_sources(1).waveform_index = 1;
+
+
+%define_output_parameters_ex_9a;
+disp('defining output parameters');
+
+sampled_electric_fields = [];
+sampled_magnetic_fields = [];
+sampled_voltages = [];
+sampled_currents = [];
+ports = [];
+farfield.frequencies = [];
+
+% figure refresh rate
+plotting_step = 100;
+
+% mode of operation
+run_simulation = true;
+show_material_mesh = true;
+show_problem_space = true;
+
+% far field calculation parameters
+farfield.frequencies(1) = 2.4e9;
+farfield.frequencies(2) = 5.8e9;
+farfield.number_of_cells_from_outer_boundary = 13;
+
+% frequency domain parameters
+frequency_domain.start = 20e6;
+frequency_domain.end   = 10e9;
+frequency_domain.step  = 20e6;
+
+% define sampled voltages
+sampled_voltages(1).min_x = -0.787e-3;
+sampled_voltages(1).min_y = 0;
+sampled_voltages(1).min_z = 24.4e-3;
+sampled_voltages(1).max_x = 0;
+sampled_voltages(1).max_y = 0;
+sampled_voltages(1).max_z = 26.4e-3;
+sampled_voltages(1).direction = 'xp';
+sampled_voltages(1).display_plot = false;
+
+% define sampled currents
+sampled_currents(1).min_x = -0.39e-3;
+sampled_currents(1).min_y = 0;
+sampled_currents(1).min_z = 24e-3;
+sampled_currents(1).max_x = -0.39e-3;
+sampled_currents(1).max_y = 0;
+sampled_currents(1).max_z = 26.4e-3;
+sampled_currents(1).direction = 'xp';
+sampled_currents(1).display_plot = false;
+
+% define ports
+ports(1).sampled_voltage_index = 1;
+ports(1).sampled_current_index = 1;
+ports(1).impedance = 50;
+ports(1).is_source_port = true;
+
+
+%initialize the problem space and parameters
+%initialize_fdtd_material_grid;
+disp('initializing FDTD material grid'); 
+ 
+% calculate problem space size based on the object  
+% locations and boundary conditions 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% start_CPML
+%calculate_domain_size; UPDATED TO CH.8
+disp('calculating the number of cells in the problem space');
+
+number_of_spheres = size(spheres,2);
+number_of_bricks  = size(bricks,2);
+
+% find the minimum and maximum coordinates of a 
+% box encapsulating the objects
+number_of_objects = 1;
+for i=1:number_of_spheres
+    min_x(number_of_objects) = spheres(i).center_x - spheres(i).radius; 
+    min_y(number_of_objects) = spheres(i).center_y - spheres(i).radius; 
+    min_z(number_of_objects) = spheres(i).center_z - spheres(i).radius; 
+    max_x(number_of_objects) = spheres(i).center_x + spheres(i).radius; 
+    max_y(number_of_objects) = spheres(i).center_y + spheres(i).radius; 
+    max_z(number_of_objects) = spheres(i).center_z + spheres(i).radius; 
+    number_of_objects = number_of_objects + 1;
+end
+for i=1:number_of_bricks
+    min_x(number_of_objects) = bricks(i).min_x; 
+    min_y(number_of_objects) = bricks(i).min_y; 
+    min_z(number_of_objects) = bricks(i).min_z; 
+    max_x(number_of_objects) = bricks(i).max_x; 
+    max_y(number_of_objects) = bricks(i).max_y; 
+    max_z(number_of_objects) = bricks(i).max_z; 
+    number_of_objects = number_of_objects + 1;
+end
+
+fdtd_domain.min_x = min(min_x);
+fdtd_domain.min_y = min(min_y);
+fdtd_domain.min_z = min(min_z);
+fdtd_domain.max_x = max(max_x);
+fdtd_domain.max_y = max(max_y);
+fdtd_domain.max_z = max(max_z);
+
+% Determine the problem space boundaries including air buffers 
+fdtd_domain.min_x = fdtd_domain.min_x ...
+    - dx * boundary.air_buffer_number_of_cells_xn;
+fdtd_domain.min_y = fdtd_domain.min_y ...
+    - dy * boundary.air_buffer_number_of_cells_yn;
+fdtd_domain.min_z = fdtd_domain.min_z ...
+    - dz * boundary.air_buffer_number_of_cells_zn;
+fdtd_domain.max_x = fdtd_domain.max_x ...
+    + dx * boundary.air_buffer_number_of_cells_xp;
+fdtd_domain.max_y = fdtd_domain.max_y ...
+    + dy * boundary.air_buffer_number_of_cells_yp;
+fdtd_domain.max_z = fdtd_domain.max_z ...
+    + dz * boundary.air_buffer_number_of_cells_zp;
+
+% Determine the problem space boundaries including cpml layers
+if strcmp(boundary.type_xn, 'cpml') && ...
+        (boundary.cpml_number_of_cells_xn>0)
+    fdtd_domain.min_x = fdtd_domain.min_x ...
+        - dx * boundary.cpml_number_of_cells_xn;
+end
+if strcmp(boundary.type_xp, 'cpml') && ...
+        (boundary.cpml_number_of_cells_xp>0)
+    fdtd_domain.max_x = fdtd_domain.max_x ...
+        + dx * boundary.cpml_number_of_cells_xp;
+end
+if strcmp(boundary.type_yn, 'cpml') && ...
+        (boundary.cpml_number_of_cells_yn>0)
+    fdtd_domain.min_y = fdtd_domain.min_y ...
+        - dy * boundary.cpml_number_of_cells_yn;
+end
+if strcmp(boundary.type_yp, 'cpml') && ...
+        (boundary.cpml_number_of_cells_yp>0)
+    fdtd_domain.max_y = fdtd_domain.max_y ...
+        + dy * boundary.cpml_number_of_cells_yp;
+end
+if strcmp(boundary.type_zn, 'cpml') && ...
+        (boundary.cpml_number_of_cells_zn>0)
+    fdtd_domain.min_z = fdtd_domain.min_z ...
+        - dz * boundary.cpml_number_of_cells_zn;
+end
+if strcmp(boundary.type_zp, 'cpml') && ...
+        (boundary.cpml_number_of_cells_zp>0)
+    fdtd_domain.max_z = fdtd_domain.max_z ...
+        + dz * boundary.cpml_number_of_cells_zp;
+end
+
+% Determining the problem space size
+fdtd_domain.size_x = fdtd_domain.max_x - fdtd_domain.min_x;
+fdtd_domain.size_y = fdtd_domain.max_y - fdtd_domain.min_y;
+fdtd_domain.size_z = fdtd_domain.max_z - fdtd_domain.min_z;
+
+% number of cells in x, y, and z directions
+nx = round(fdtd_domain.size_x/dx);  
+ny = round(fdtd_domain.size_y/dy);
+nz = round(fdtd_domain.size_z/dz);
+
+% adjust domain size by snapping to cells
+fdtd_domain.size_x = nx * dx;
+fdtd_domain.size_y = ny * dy;
+fdtd_domain.size_x = nz * dz;
+
+fdtd_domain.max_x = fdtd_domain.min_x + fdtd_domain.size_x;
+fdtd_domain.max_y = fdtd_domain.min_y + fdtd_domain.size_y;
+fdtd_domain.max_z = fdtd_domain.min_z + fdtd_domain.size_z;
+
+% some frequently used auxiliary parameters 
+nxp1 = nx+1;    nyp1 = ny+1;    nzp1 = nz+1;
+nxm1 = nx-1;    nxm2 = nx-2;	nym1 = ny-1;
+nym2 = ny-2;	nzm1 = nz-1;	nzm2 = nz-2;
+
+% create arrays storing the center coordinates of the cells
+fdtd_domain.cell_center_coordinates_x = zeros(nx,ny,nz);
+fdtd_domain.cell_center_coordinates_y = zeros(nx,ny,nz);
+fdtd_domain.cell_center_coordinates_z = zeros(nx,ny,nz);
+for ind = 1:nx
+    fdtd_domain.cell_center_coordinates_x(ind,:,:) = ...
+        (ind - 0.5) * dx + fdtd_domain.min_x;
+end
+for ind = 1:ny
+    fdtd_domain.cell_center_coordinates_y(:,ind,:) = ...
+       (ind - 0.5) * dy + fdtd_domain.min_y;
+end
+for ind = 1:nz
+    fdtd_domain.cell_center_coordinates_z(:,:,ind) = ...
+        (ind - 0.5) * dz + fdtd_domain.min_z;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  end_CPML
+
+% Array to store material type indices for every cell 
+% in the problem space. By default the space is filled  
+% with air by initializing the array by ones 
+material_3d_space = ones(nx, ny, nz);  
+ 
+% Create the 3D objects in the problem space by 
+% assigning indices of material types in the cells  
+% to material_3d_space   
+ 
+% create spheres 
+%create_spheres; 
+disp('creating spheres'); 
+ 
+cx = fdtd_domain.cell_center_coordinates_x; 
+cy = fdtd_domain.cell_center_coordinates_y; 
+cz = fdtd_domain.cell_center_coordinates_z; 
+ 
+for ind=1:number_of_spheres 
+% distance of the centers of the cells from the center of the sphere 
+    distance = sqrt((spheres(ind).center_x - cx).^2 ... 
+            + (spheres(ind).center_y - cy).^2 ... 
+            + (spheres(ind).center_z - cz).^2); 
+    I = find(distance<=spheres(ind).radius); 
+    material_3d_space(I) = spheres(ind).material_type; 
+end 
+clear cx cy cz;  
+% create bricks 
+%create_bricks; 
+disp('creating bricks'); 
+ 
+for ind = 1:number_of_bricks 
+    % convert brick end coordinates to node indices  
+    blx = round((bricks(ind).min_x - fdtd_domain.min_x)/dx) + 1;  
+    bly = round((bricks(ind).min_y - fdtd_domain.min_y)/dy) + 1;  
+    blz = round((bricks(ind).min_z - fdtd_domain.min_z)/dz) + 1;  
+ 
+    bux = round((bricks(ind).max_x - fdtd_domain.min_x)/dx)+1;  
+    buy = round((bricks(ind).max_y - fdtd_domain.min_y)/dy)+1;  
+    buz = round((bricks(ind).max_z - fdtd_domain.min_z)/dz)+1;  
+ 
+    % assign material type of the brick to the cells 
+    material_3d_space (blx:bux-1, bly:buy-1, blz:buz-1) ... 
+        = bricks(ind).material_type; 
+end  
+% Material component arrays for a problem space 
+% composed of (nx, ny, nz) cells 
+eps_r_x     = ones (nx  , nyp1 , nzp1); 
+eps_r_y     = ones (nxp1, ny   , nzp1); 
+eps_r_z     = ones (nxp1, nyp1 , nz); 
+mu_r_x      = ones (nxp1, ny   , nz); 
+mu_r_y      = ones (nx  , nyp1 , nz); 
+mu_r_z      = ones (nx  , ny   , nzp1); 
+sigma_e_x   = zeros(nx  , nyp1 , nzp1); 
+sigma_e_y   = zeros(nxp1, ny   , nzp1); 
+sigma_e_z   = zeros(nxp1, nyp1 , nz); 
+sigma_m_x   = zeros(nxp1, ny   , nz); 
+sigma_m_y   = zeros(nx  , nyp1 , nz); 
+sigma_m_z   = zeros(nx  , ny   , nzp1); 
+ 
+% calculate material component values by averaging 
+%calculate_material_component_values; 
+ disp('filling material components arrays'); 
+ 
+% creating temporary 1D arrays for storing  
+% parameter values of material types 
+for ind = 1:size(material_types,2) 
+    t_eps_r(ind)   = material_types(ind).eps_r; 
+    t_mu_r(ind)    = material_types(ind).mu_r; 
+    t_sigma_e(ind) = material_types(ind).sigma_e; 
+    t_sigma_m(ind) = material_types(ind).sigma_m; 
+end 
+ 
+% assign negligibly small values to t_mu_r and t_sigma_m where they are 
+% zero in order to prevent division by zero error  
+t_mu_r(find(t_mu_r==0)) = 1e-20; 
+t_sigma_m(find(t_sigma_m==0)) = 1e-20; 
+ 
+disp('Calculating eps_r_x'); 
+% eps_r_x(i,j,k) is average of four cells  
+% (i,j,k),(i,j-1,k), (i,j,k-1), (i,j-1,k-1)  
+eps_r_x(1:nx,2:ny,2:nz) = ... 
+    0.25 * (t_eps_r(material_3d_space(1:nx,2:ny,2:nz)) ... 
+    + t_eps_r(material_3d_space(1:nx,1:ny-1,2:nz)) ... 
+    + t_eps_r(material_3d_space(1:nx,2:ny,1:nz-1)) ... 
+    + t_eps_r(material_3d_space(1:nx,1:ny-1,1:nz-1))); 
+ 
+disp('Calculating eps_r_y'); 
+% eps_r_y(i,j,k) is average of four cells  
+% (i,j,k),(i-1,j,k), (i,j,k-1), (i-1,j,k-1)  
+eps_r_y(2:nx,1:ny,2:nz) = ... 
+    0.25 * (t_eps_r(material_3d_space(2:nx,1:ny,2:nz)) ... 
+    + t_eps_r(material_3d_space(1:nx-1,1:ny,2:nz)) ... 
+    + t_eps_r(material_3d_space(2:nx,1:ny,1:nz-1)) ... 
+    + t_eps_r(material_3d_space(1:nx-1,1:ny,1:nz-1))); 
+                     
+disp('Calculating eps_r_z'); 
+% eps_r_z(i,j,k) is average of four cells  
+% (i,j,k),(i-1,j,k), (i,j-1,k), (i-1,j-1,k)  
+eps_r_z(2:nx,2:ny,1:nz) = ... 
+    0.25 * (t_eps_r(material_3d_space(2:nx,2:ny,1:nz)) ... 
+    + t_eps_r(material_3d_space(1:nx-1,2:ny,1:nz)) ... 
+    + t_eps_r(material_3d_space(2:nx,1:ny-1,1:nz)) ... 
+    + t_eps_r(material_3d_space(1:nx-1,1:ny-1,1:nz))); 
+ 
+disp('Calculating sigma_e_x'); 
+% sigma_e_x(i,j,k) is average of four cells  
+% (i,j,k),(i,j-1,k), (i,j,k-1), (i,j-1,k-1)  
+sigma_e_x(1:nx,2:ny,2:nz) = ... 
+    0.25 * (t_sigma_e(material_3d_space(1:nx,2:ny,2:nz)) ... 
+    + t_sigma_e(material_3d_space(1:nx,1:ny-1,2:nz)) ... 
+    + t_sigma_e(material_3d_space(1:nx,2:ny,1:nz-1)) ... 
+    + t_sigma_e(material_3d_space(1:nx,1:ny-1,1:nz-1))); 
+ 
+disp('Calculating sigma_e_y'); 
+% sigma_e_y(i,j,k) is average of four cells 
+% (i,j,k),(i-1,j,k), (i,j,k-1), (i-1,j,k-1)  
+sigma_e_y(2:nx,1:ny,2:nz) = ... 
+    0.25 * (t_sigma_e(material_3d_space(2:nx,1:ny,2:nz)) ... 
+    + t_sigma_e(material_3d_space(1:nx-1,1:ny,2:nz)) ... 
+    + t_sigma_e(material_3d_space(2:nx,1:ny,1:nz-1)) ... 
+    + t_sigma_e(material_3d_space(1:nx-1,1:ny,1:nz-1))); 
+                     
+disp('Calculating sigma_e_z'); 
+% sigma_e_z(i,j,k) is average of four cells 
+% (i,j,k),(i-1,j,k), (i,j-1,k), (i-1,j-1,k)  
+sigma_e_z(2:nx,2:ny,1:nz) = ... 
+    0.25 * (t_sigma_e(material_3d_space(2:nx,2:ny,1:nz)) ... 
+    + t_sigma_e(material_3d_space(1:nx-1,2:ny,1:nz)) ... 
+    + t_sigma_e(material_3d_space(2:nx,1:ny-1,1:nz)) ... 
+    + t_sigma_e(material_3d_space(1:nx-1,1:ny-1,1:nz))); 
+ 
+                     
+disp('Calculating mu_r_x'); 
+% mu_r_x(i,j,k) is average of two cells (i,j,k),(i-1,j,k) 
+mu_r_x(2:nx,1:ny,1:nz) = ... 
+    2 * (t_mu_r(material_3d_space(2:nx,1:ny,1:nz)) ... 
+    .* t_mu_r(material_3d_space(1:nx-1,1:ny,1:nz))) ... 
+    ./(t_mu_r(material_3d_space(2:nx,1:ny,1:nz)) ... 
+    + t_mu_r(material_3d_space(1:nx-1,1:ny,1:nz))); 
+                     
+disp('Calculating mu_r_y'); 
+% mu_r_y(i,j,k) is average of two cells (i,j,k),(i,j-1,k) 
+mu_r_y(1:nx,2:ny,1:nz) = ... 
+    2 * (t_mu_r(material_3d_space(1:nx,2:ny,1:nz)) ... 
+    .* t_mu_r(material_3d_space(1:nx,1:ny-1,1:nz))) ... 
+    ./(t_mu_r(material_3d_space(1:nx,2:ny,1:nz)) ... 
+    + t_mu_r(material_3d_space(1:nx,1:ny-1,1:nz))); 
+                     
+disp('Calculating mu_r_z'); 
+% mu_r_z(i,j,k) is average of two cells (i,j,k),(i,j,k-1) 
+mu_r_z(1:nx,1:ny,2:nz) = ... 
+    2 * (t_mu_r(material_3d_space(1:nx,1:ny,2:nz)) ... 
+    .* t_mu_r(material_3d_space(1:nx,1:ny,1:nz-1))) ... 
+    ./(t_mu_r(material_3d_space(1:nx,1:ny,2:nz)) ... 
+    + t_mu_r(material_3d_space(1:nx,1:ny,1:nz-1))); 
+                     
+disp('Calculating sigma_m_x'); 
+% sigma_m_x(i,j,k) is average of two cells (i,j,k),(i-1,j,k) 
+sigma_m_x(2:nx,1:ny,1:nz) = ... 
+    2 * (t_sigma_m(material_3d_space(2:nx,1:ny,1:nz)) ... 
+    .* t_sigma_m(material_3d_space(1:nx-1,1:ny,1:nz))) ... 
+    ./(t_sigma_m(material_3d_space(2:nx,1:ny,1:nz)) ... 
+    + t_sigma_m(material_3d_space(1:nx-1,1:ny,1:nz))); 
+                     
+disp('Calculating sigma_m_y'); 
+% sigma_m_y(i,j,k) is average of two cells (i,j,k),(i,j-1,k) 
+sigma_m_y(1:nx,2:ny,1:nz) = ... 
+    2 * (t_sigma_m(material_3d_space(1:nx,2:ny,1:nz)) ... 
+    .* t_sigma_m(material_3d_space(1:nx,1:ny-1,1:nz))) ... 
+    ./(t_sigma_m(material_3d_space(1:nx,2:ny,1:nz)) ... 
+    + t_sigma_m(material_3d_space(1:nx,1:ny-1,1:nz))); 
+                     
+disp('Calculating sigma_m_z'); 
+% sigma_m_z(i,j,k) is average of two cells (i,j,k),(i,j,k-1) 
+sigma_m_z(1:nx,1:ny,2:nz) = ... 
+    2 * (t_sigma_m(material_3d_space(1:nx,1:ny,2:nz)) ... 
+    .* t_sigma_m(material_3d_space(1:nx,1:ny,1:nz-1))) ... 
+    ./(t_sigma_m(material_3d_space(1:nx,1:ny,2:nz)) ... 
+    + t_sigma_m(material_3d_space(1:nx,1:ny,1:nz-1))); 
+% create zero thickness PEC plates 
+%create_PEC_plates; 
+disp('creating PEC plates on the material grid'); 
+ 
+for ind = 1:number_of_bricks 
+ 
+    mtype = bricks(ind).material_type; 
+    sigma_pec = material_types(mtype).sigma_e; 
+ 
+    % convert coordinates to node indices on the FDTD grid 
+    blx = round((bricks(ind).min_x - fdtd_domain.min_x)/dx)+1;  
+    bly = round((bricks(ind).min_y - fdtd_domain.min_y)/dy)+1;  
+    blz = round((bricks(ind).min_z - fdtd_domain.min_z)/dz)+1;  
+ 
+    bux = round((bricks(ind).max_x - fdtd_domain.min_x)/dx)+1;  
+    buy = round((bricks(ind).max_y - fdtd_domain.min_y)/dy)+1;  
+    buz = round((bricks(ind).max_z - fdtd_domain.min_z)/dz)+1;  
+ 
+    % find the zero thickness bricks 
+    if (blx == bux) 
+        sigma_e_y(blx, bly:buy-1,blz:buz) = sigma_pec; 
+        sigma_e_z(blx, bly:buy,blz:buz-1) = sigma_pec; 
+    end 
+    if (bly == buy) 
+        sigma_e_z(blx:bux, bly, blz:buz-1) = sigma_pec; 
+        sigma_e_x(blx:bux-1, bly, blz:buz) = sigma_pec; 
+    end 
+    if (blz == buz) 
+        sigma_e_x(blx:bux-1,bly:buy, blz) = sigma_pec; 
+        sigma_e_y(blx:bux,bly:buy-1,blz)  = sigma_pec; 
+    end 
+end
+
+%display_problem_space;
+% This subroutine displays the objects in the FDTD problem space 
+ 
+if ~exist('show_problem_space','var')  
+    show_problem_space = false; 
+end 
+if ~show_problem_space 
+    return; 
+end 
+ 
+disp('drawing objects'); 
+ 
+% default display settings 
+if ~exist('problem_space_display','var') 
+    problem_space_display.labels = true; 
+    problem_space_display.axis_at_origin = false; 
+    problem_space_display.axis_outside_domain = true; 
+    problem_space_display.grid_xn = false; 
+    problem_space_display.grid_xp = false; 
+    problem_space_display.grid_yn = false; 
+    problem_space_display.grid_yp = false; 
+    problem_space_display.grid_zn = false; 
+    problem_space_display.grid_zp = false; 
+    problem_space_display.outer_boundaries = true; 
+    problem_space_display.cpml_boundaries = true; 
+end 
+ 
+if ~isfield(problem_space_display,'labels') 
+    problem_space_display.labels = true; 
+end 
+if ~isfield(problem_space_display,'axis_at_origin') 
+    problem_space_display.axis_at_origin = false; 
+end 
+if ~isfield(problem_space_display,'axis_outside_domain') 
+    problem_space_display.axis_outside_domain = true; 
+end     
+if ~isfield(problem_space_display,'grid_xn') 
+    problem_space_display.grid_xn = false; 
+end 
+if ~isfield(problem_space_display,'grid_xp') 
+    problem_space_display.grid_xp = false; 
+end 
+if ~isfield(problem_space_display,'grid_yn') 
+    problem_space_display.grid_yn = false; 
+end 
+if ~isfield(problem_space_display,'grid_yp') 
+    problem_space_display.grid_yp = false; 
+end 
+if ~isfield(problem_space_display,'grid_zn') 
+    problem_space_display.grid_zn = false; 
+end 
+if ~isfield(problem_space_display,'grid_zp') 
+    problem_space_display.grid_zp = false; 
+end     
+if ~isfield(problem_space_display,'outer_boundaries') 
+    problem_space_display.outer_boundaries = true; 
+end 
+if ~isfield(problem_space_display,'cpml_boundaries') 
+    problem_space_display.cpml_boundaries = true; 
+end 
+ 
+disp('initializing FDTD parameters and arrays');
+
+% constant parameters
+eps_0 = 8.854187817e-12; % permittivity of free space
+mu_0  = 4*pi*1e-7; % permeability of free space
+c = 1/sqrt(mu_0*eps_0); % speed of light in free space
+
+% Duration of a time step in seconds
+dt = 1/(c*sqrt((1/dx^2)+(1/dy^2)+(1/dz^2)));
+dt = courant_factor*dt;
+
+% time array
+time = ([1:number_of_time_steps]-0.5)*dt;
+
+% Create and initialize field and current arrays
+disp('creating field arrays');
+
+Hx = zeros(nxp1,ny,nz);
+Hy = zeros(nx,nyp1,nz);
+Hz = zeros(nx,ny,nzp1);
+Ex = zeros(nx,nyp1,nzp1);
+Ey = zeros(nxp1,ny,nzp1);
+Ez = zeros(nxp1,nyp1,nz);
+
+%initialize_sources_and_lumped_elements;
+disp('initializing sources and lumped element components');
+
+number_of_voltage_sources   = size(voltage_sources,2);
+number_of_current_sources   = size(current_sources,2);
+number_of_resistors   = size(resistors,2);
+number_of_inductors   = size(inductors,2);
+number_of_capacitors  = size(capacitors,2);
+number_of_diodes      = size(diodes,2);
+
+% initialize waveforms
+%initialize_waveforms;
+disp('initializing source waveforms');
+
+% initialize sinusoidal waveforms
+if isfield(waveforms,'sinusoidal')
+    for ind=1:size(waveforms.sinusoidal,2)
+        waveforms.sinusoidal(ind).waveform = ...
+            sin(2 * pi * waveforms.sinusoidal(ind).frequency * time);
+        waveforms.sinusoidal(ind).t_0 = 0;
+    end
+end
+
+% initialize unit step waveforms
+if isfield(waveforms,'unit_step')
+    for ind=1:size(waveforms.unit_step,2)
+        start_index = waveforms.unit_step(ind).start_time_step;
+        waveforms.unit_step(ind).waveform(1:number_of_time_steps) = 1;
+        waveforms.unit_step(ind).waveform(1:start_index-1) = 0;
+        waveforms.unit_step(ind).t_0 = 0;
+    end
+end
+
+% initialize Gaussian waveforms
+if isfield(waveforms,'gaussian')
+    for ind=1:size(waveforms.gaussian,2)
+        if waveforms.gaussian(ind).number_of_cells_per_wavelength == 0
+            nc = number_of_cells_per_wavelength;
+        else
+            nc = waveforms.gaussian(ind).number_of_cells_per_wavelength;
+        end
+        waveforms.gaussian(ind).maximum_frequency = ...
+            c/(nc*max([dx,dy,dz]));
+        tau = (nc*max([dx,dy,dz]))/(2*c);
+        waveforms.gaussian(ind).tau = tau;
+        t_0 = 4.5 * waveforms.gaussian(ind).tau;
+        waveforms.gaussian(ind).t_0 = t_0;
+        waveforms.gaussian(ind).waveform = exp(-((time - t_0)/tau).^2);
+    end
+end
+
+% initialize derivative of Gaussian waveforms
+if isfield(waveforms,'derivative_gaussian')
+    for ind=1:size(waveforms.derivative_gaussian,2)
+        wfrm = waveforms.derivative_gaussian(ind);
+        if wfrm.number_of_cells_per_wavelength == 0
+            nc = number_of_cells_per_wavelength;
+        else
+            nc = ...
+                waveforms.derivative_gaussian(ind).number_of_cells_per_wavelength;
+        end
+        waveforms.derivative_gaussian(ind).maximum_frequency = ...
+            c/(nc*max([dx,dy,dz]));
+        tau = (nc*max([dx,dy,dz]))/(2*c);
+        waveforms.derivative_gaussian(ind).tau = tau;
+        t_0 = 4.5 * waveforms.derivative_gaussian(ind).tau;
+        waveforms.derivative_gaussian(ind).t_0 = t_0;
+        waveforms.derivative_gaussian(ind).waveform = ...
+            -(sqrt(2*exp(1))/tau)*(time - t_0).*exp(-((time - t_0)/tau).^2);
+    end
+end
+
+% initialize cosine modulated Gaussian waveforms
+if isfield(waveforms,'cosine_modulated_gaussian')
+    for ind=1:size(waveforms.cosine_modulated_gaussian,2)
+        frequency = ...
+            waveforms.cosine_modulated_gaussian(ind).modulation_frequency;
+        tau = 0.966/waveforms.cosine_modulated_gaussian(ind).bandwidth;
+        waveforms.cosine_modulated_gaussian(ind).tau = tau;
+        t_0 = 4.5 * waveforms.cosine_modulated_gaussian(ind).tau;
+        waveforms.cosine_modulated_gaussian(ind).t_0 = t_0;
+        waveforms.cosine_modulated_gaussian(ind).waveform = ...
+            cos(2*pi*frequency*(time - t_0)).*exp(-((time - t_0)/tau).^2);
+    end
+end
+% voltage sources
+for ind = 1:number_of_voltage_sources
+    is = round((voltage_sources(ind).min_x - fdtd_domain.min_x)/dx)+1;
+    js = round((voltage_sources(ind).min_y - fdtd_domain.min_y)/dy)+1;
+    ks = round((voltage_sources(ind).min_z - fdtd_domain.min_z)/dz)+1;
+    ie = round((voltage_sources(ind).max_x - fdtd_domain.min_x)/dx)+1;
+    je = round((voltage_sources(ind).max_y - fdtd_domain.min_y)/dy)+1;
+    ke = round((voltage_sources(ind).max_z - fdtd_domain.min_z)/dz)+1;
+    voltage_sources(ind).is = is;
+    voltage_sources(ind).js = js;
+    voltage_sources(ind).ks = ks;
+    voltage_sources(ind).ie = ie;
+    voltage_sources(ind).je = je;
+    voltage_sources(ind).ke = ke;
+    
+    switch (voltage_sources(ind).direction(1))
+        case 'x'
+            n_fields = ie - is;
+            r_magnitude_factor = (1 + je - js) * (1 + ke - ks) / (ie - is);
+        case 'y'
+            n_fields = je - js;
+            r_magnitude_factor = (1 + ie - is) * (1 + ke - ks) / (je - js);
+        case 'z'
+            n_fields = ke - ks;
+            r_magnitude_factor = (1 + ie - is) * (1 + je - js) / (ke - ks);
+    end
+    if strcmp(voltage_sources(ind).direction(2),'n')
+        v_magnitude_factor =  ...
+            -1*voltage_sources(ind).magnitude/n_fields;
+    else
+        v_magnitude_factor =  ...
+            1*voltage_sources(ind).magnitude/n_fields;
+    end
+    voltage_sources(ind).resistance_per_component = ...
+        r_magnitude_factor * voltage_sources(ind).resistance;
+    
+    % copy waveform of the waveform type to waveform of the source
+    wt_str = voltage_sources(ind).waveform_type;
+    wi_str = num2str(voltage_sources(ind).waveform_index);
+    eval_str = ['a_waveform = waveforms.' ...
+        wt_str '(' wi_str ').waveform;'];
+    eval(eval_str);
+    voltage_sources(ind).voltage_per_e_field = ...
+        v_magnitude_factor * a_waveform;
+    voltage_sources(ind).waveform = ...
+        v_magnitude_factor * a_waveform * n_fields;
+end
+
+% current sources
+for ind = 1:number_of_current_sources
+    is = round((current_sources(ind).min_x - fdtd_domain.min_x)/dx)+1;
+    js = round((current_sources(ind).min_y - fdtd_domain.min_y)/dy)+1;
+    ks = round((current_sources(ind).min_z - fdtd_domain.min_z)/dz)+1;
+    ie = round((current_sources(ind).max_x - fdtd_domain.min_x)/dx)+1;
+    je = round((current_sources(ind).max_y - fdtd_domain.min_y)/dy)+1;
+    ke = round((current_sources(ind).max_z - fdtd_domain.min_z)/dz)+1;
+    current_sources(ind).is = is;
+    current_sources(ind).js = js;
+    current_sources(ind).ks = ks;
+    current_sources(ind).ie = ie;
+    current_sources(ind).je = je;
+    current_sources(ind).ke = ke;
+    
+    switch (current_sources(ind).direction(1))
+        case 'x'
+            n_fields = (1 + je - js) * (1 + ke - ks);
+            r_magnitude_factor = (1 + je - js) * (1 + ke - ks) / (ie - is);
+        case 'y'
+            n_fields = (1 + ie - is) * (1 + ke - ks);
+            r_magnitude_factor = (1 + ie - is) * (1 + ke - ks) / (je - js);
+        case 'z'
+            n_fields = (1 + ie - is) * (1 + je - js);
+            r_magnitude_factor = (1 + ie - is) * (1 + je - js) / (ke - ks);
+    end
+    if strcmp(current_sources(ind).direction(2),'n')
+        i_magnitude_factor = ...
+            -1*current_sources(ind).magnitude/n_fields;
+    else
+        i_magnitude_factor =  ...
+            1*current_sources(ind).magnitude/n_fields;
+    end
+    current_sources(ind).resistance_per_component = ...
+        r_magnitude_factor * current_sources(ind).resistance;
+    
+    % copy waveform of the waveform type to waveform of the source
+    wt_str = current_sources(ind).waveform_type;
+    wi_str = num2str(current_sources(ind).waveform_index);
+    eval_str = ['a_waveform = waveforms.' ...
+        wt_str '(' wi_str ').waveform;'];
+    eval(eval_str);
+    current_sources(ind).current_per_e_field = ...
+        i_magnitude_factor * a_waveform;
+    current_sources(ind).waveform = ...
+        i_magnitude_factor * a_waveform * n_fields;
+end
+
+% resistors
+for ind = 1:number_of_resistors
+    is = round((resistors(ind).min_x - fdtd_domain.min_x)/dx)+1;
+    js = round((resistors(ind).min_y - fdtd_domain.min_y)/dy)+1;
+    ks = round((resistors(ind).min_z - fdtd_domain.min_z)/dz)+1;
+    ie = round((resistors(ind).max_x - fdtd_domain.min_x)/dx)+1;
+    je = round((resistors(ind).max_y - fdtd_domain.min_y)/dy)+1;
+    ke = round((resistors(ind).max_z - fdtd_domain.min_z)/dz)+1;
+    resistors(ind).is = is;
+    resistors(ind).js = js;
+    resistors(ind).ks = ks;
+    resistors(ind).ie = ie;
+    resistors(ind).je = je;
+    resistors(ind).ke = ke;
+    switch (resistors(ind).direction)
+        case 'x'
+            r_magnitude_factor = (1 + je - js) * (1 + ke - ks) / (ie - is);
+        case 'y'
+            r_magnitude_factor = (1 + ie - is) * (1 + ke - ks) / (je - js);
+        case 'z'
+            r_magnitude_factor = (1 + ie - is) * (1 + je - js) / (ke - ks);
+    end
+    resistors(ind).resistance_per_component = ...
+        r_magnitude_factor * resistors(ind).resistance;
+end
+
+% inductors
+for ind = 1:number_of_inductors
+    is = round((inductors(ind).min_x - fdtd_domain.min_x)/dx)+1;
+    js = round((inductors(ind).min_y - fdtd_domain.min_y)/dy)+1;
+    ks = round((inductors(ind).min_z - fdtd_domain.min_z)/dz)+1;
+    ie = round((inductors(ind).max_x - fdtd_domain.min_x)/dx)+1;
+    je = round((inductors(ind).max_y - fdtd_domain.min_y)/dy)+1;
+    ke = round((inductors(ind).max_z - fdtd_domain.min_z)/dz)+1;
+    inductors(ind).is = is;
+    inductors(ind).js = js;
+    inductors(ind).ks = ks;
+    inductors(ind).ie = ie;
+    inductors(ind).je = je;
+    inductors(ind).ke = ke;
+    switch (inductors(ind).direction)
+        case 'x'
+            l_magnitude_factor = (1 + je - js) * (1 + ke - ks) / (ie - is);
+        case 'y'
+            l_magnitude_factor = (1 + ie - is) * (1 + ke - ks) / (je - js);
+        case 'z'
+            l_magnitude_factor = (1 + ie - is) * (1 + je - js) / (ke - ks);
+    end
+    inductors(ind).inductance_per_component = ...
+        l_magnitude_factor * inductors(ind).inductance;
+end
+
+% capacitors
+for ind = 1:number_of_capacitors
+    is = round((capacitors(ind).min_x - fdtd_domain.min_x)/dx)+1;
+    js = round((capacitors(ind).min_y - fdtd_domain.min_y)/dy)+1;
+    ks = round((capacitors(ind).min_z - fdtd_domain.min_z)/dz)+1;
+    ie = round((capacitors(ind).max_x - fdtd_domain.min_x)/dx)+1;
+    je = round((capacitors(ind).max_y - fdtd_domain.min_y)/dy)+1;
+    ke = round((capacitors(ind).max_z - fdtd_domain.min_z)/dz)+1;
+    capacitors(ind).is = is;
+    capacitors(ind).js = js;
+    capacitors(ind).ks = ks;
+    capacitors(ind).ie = ie;
+    capacitors(ind).je = je;
+    capacitors(ind).ke = ke;
+    switch (capacitors(ind).direction)
+        case 'x'
+            c_magnitude_factor = (ie - is) ...
+                / ((1 + je - js) * (1 + ke - ks));
+        case 'y'
+            c_magnitude_factor = (je - js) ...
+                / ((1 + ie - is) * (1 + ke - ks));
+        case 'z'
+            c_magnitude_factor = (ke - ks) ...
+                / ((1 + ie - is) * (1 + je - js));
+    end
+    capacitors(ind).capacitance_per_component = ...
+        c_magnitude_factor * capacitors(ind).capacitance;
+end
+
+sigma_pec = material_types(material_type_index_pec).sigma_e;
+
+% diodes
+for ind = 1:number_of_diodes
+    is = round((diodes(ind).min_x - fdtd_domain.min_x)/dx)+1;
+    js = round((diodes(ind).min_y - fdtd_domain.min_y)/dy)+1;
+    ks = round((diodes(ind).min_z - fdtd_domain.min_z)/dz)+1;
+    ie = round((diodes(ind).max_x - fdtd_domain.min_x)/dx)+1;
+    je = round((diodes(ind).max_y - fdtd_domain.min_y)/dy)+1;
+    ke = round((diodes(ind).max_z - fdtd_domain.min_z)/dz)+1;
+    diodes(ind).is = is;
+    diodes(ind).js = js;
+    diodes(ind).ks = ks;
+    diodes(ind).ie = ie;
+    diodes(ind).je = je;
+    diodes(ind).ke = ke;
+    
+    switch (diodes(ind).direction(1))
+        case 'x'
+            sigma_e_x(is+1:ie-1,js,ks) = sigma_pec;
+        case 'y'
+            sigma_e_y(is,js+1:je-1,ks) = sigma_pec;
+        case 'z'
+            sigma_e_z(is,js,ks+1:ke-1) = sigma_pec;
+    end
+end
+% initialize_updating_coefficients;
+disp('initializing general updating coefficients');
+
+% General electric field updating coefficients
+% Coeffiecients updating Ex
+Cexe  =  (2*eps_r_x*eps_0 - dt*sigma_e_x) ...
+    ./(2*eps_r_x*eps_0 + dt*sigma_e_x);
+Cexhz =  (2*dt/dy)./(2*eps_r_x*eps_0 + dt*sigma_e_x);
+Cexhy = -(2*dt/dz)./(2*eps_r_x*eps_0 + dt*sigma_e_x);
+
+% Coeffiecients updating Ey
+Ceye  =  (2*eps_r_y*eps_0 - dt*sigma_e_y) ...
+    ./(2*eps_r_y*eps_0 + dt*sigma_e_y);
+Ceyhx =  (2*dt/dz)./(2*eps_r_y*eps_0 + dt*sigma_e_y);
+Ceyhz = -(2*dt/dx)./(2*eps_r_y*eps_0 + dt*sigma_e_y);
+
+% Coeffiecients updating Ez
+Ceze  =  (2*eps_r_z*eps_0 - dt*sigma_e_z) ...
+    ./(2*eps_r_z*eps_0 + dt*sigma_e_z);
+Cezhy =  (2*dt/dx)./(2*eps_r_z*eps_0 + dt*sigma_e_z);
+Cezhx = -(2*dt/dy)./(2*eps_r_z*eps_0 + dt*sigma_e_z);
+
+% General magnetic field updating coefficients
+% Coeffiecients updating Hx
+Chxh  =  (2*mu_r_x*mu_0 - dt*sigma_m_x) ...
+    ./(2*mu_r_x*mu_0 + dt*sigma_m_x);
+Chxez = -(2*dt/dy)./(2*mu_r_x*mu_0 + dt*sigma_m_x);
+Chxey =  (2*dt/dz)./(2*mu_r_x*mu_0 + dt*sigma_m_x);
+
+% Coeffiecients updating Hy
+Chyh  =  (2*mu_r_y*mu_0 - dt*sigma_m_y) ...
+    ./(2*mu_r_y*mu_0 + dt*sigma_m_y);
+Chyex = -(2*dt/dz)./(2*mu_r_y*mu_0 + dt*sigma_m_y);
+Chyez =  (2*dt/dx)./(2*mu_r_y*mu_0 + dt*sigma_m_y);
+
+% Coeffiecients updating Hz
+Chzh  =  (2*mu_r_z*mu_0 - dt*sigma_m_z) ...
+    ./(2*mu_r_z*mu_0 + dt*sigma_m_z);
+Chzey = -(2*dt/dx)./(2*mu_r_z*mu_0 + dt*sigma_m_z);
+Chzex =  (2*dt/dy)./(2*mu_r_z*mu_0 + dt*sigma_m_z);
+
+% Initialize coeffiecients for lumped element components
+%initialize_voltage_source_updating_coefficients;
+disp('initializing voltage source updating coefficients');
+
+for ind = 1:number_of_voltage_sources
+    is = voltage_sources(ind).is;
+    js = voltage_sources(ind).js;
+    ks = voltage_sources(ind).ks;
+    ie = voltage_sources(ind).ie;
+    je = voltage_sources(ind).je;
+    ke = voltage_sources(ind).ke;
+    R = voltage_sources(ind).resistance_per_component;
+    if (R == 0) R = 1e-20; end
+    
+    switch (voltage_sources(ind).direction(1))
+        case 'x'
+            fi = create_linear_index_list(eps_r_x,is:ie-1,js:je,ks:ke);
+            a_term = (dt*dx)/(R*dy*dz);
+            Cexe(fi) = ...
+                (2*eps_0*eps_r_x(fi)-dt*sigma_e_x(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_x(fi)+dt*sigma_e_x(fi)+a_term);
+            Cexhz(fi)= (2*dt/dy)...
+                ./ (2*eps_r_x(fi)*eps_0+dt*sigma_e_x(fi)+a_term);
+            Cexhy(fi)= -(2*dt/dz) ...
+                ./ (2*eps_r_x(fi)*eps_0 + dt*sigma_e_x(fi)+a_term);
+            voltage_sources(ind).Cexs = -(2*dt/(R*dy*dz)) ...
+                ./(2*eps_r_x(fi)*eps_0+dt*sigma_e_x(fi)+a_term);
+        case 'y'
+            fi = create_linear_index_list(eps_r_y,is:ie,js:je-1,ks:ke);
+            a_term = (dt*dy)/(R*dz*dx);
+            Ceye(fi) = ...
+                (2*eps_0*eps_r_y(fi)-dt*sigma_e_y(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_y(fi)+dt*sigma_e_y(fi)+a_term);
+            Ceyhx(fi)= (2*dt/dz)...
+                ./ (2*eps_r_y(fi)*eps_0+dt*sigma_e_y(fi)+a_term);
+            Ceyhz(fi)= -(2*dt/dx) ...
+                ./ (2*eps_r_y(fi)*eps_0 + dt*sigma_e_y(fi)+a_term);
+            voltage_sources(ind).Ceys = -(2*dt/(R*dz*dx)) ...
+                ./(2*eps_r_y(fi)*eps_0+dt*sigma_e_y(fi)+a_term);
+        case 'z'
+            fi = create_linear_index_list(eps_r_z,is:ie,js:je,ks:ke-1);
+            a_term = (dt*dz)/(R*dx*dy);
+            Ceze(fi) = ...
+                (2*eps_0*eps_r_z(fi)-dt*sigma_e_z(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_z(fi)+dt*sigma_e_z(fi)+a_term);
+            Cezhy(fi)= (2*dt/dx)...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+            Cezhx(fi)= -(2*dt/dy) ...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+            voltage_sources(ind).Cezs = -(2*dt/(R*dx*dy)) ...
+                ./(2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+    end
+    voltage_sources(ind).field_indices = fi;
+end
+%initialize_current_source_updating_coefficients;
+disp('initializing current source updating coefficients');
+
+for ind = 1:number_of_current_sources
+    is = current_sources(ind).is;
+    js = current_sources(ind).js;
+    ks = current_sources(ind).ks;
+    ie = current_sources(ind).ie;
+    je = current_sources(ind).je;
+    ke = current_sources(ind).ke;
+    
+    R = current_sources(ind).resistance_per_component;
+    
+    switch (current_sources(ind).direction(1))
+        case 'x'
+            fi = create_linear_index_list(eps_r_x,is:ie-1,js:je,ks:ke);
+            a_term = (dt*dx)/(R*dy*dz);
+            Cexe(fi) = ...
+                (2*eps_0*eps_r_x(fi)-dt*sigma_e_x(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_x(fi)+dt*sigma_e_x(fi)+a_term);
+            Cexhz(fi)= (2*dt/dy)...
+                ./ (2*eps_r_x(fi)*eps_0+dt*sigma_e_x(fi)+a_term);
+            Cexhy(fi)= -(2*dt/dz) ...
+                ./ (2*eps_r_x(fi)*eps_0 + dt*sigma_e_x(fi)+a_term);
+            current_sources(ind).Cexs = -(2*dt/(dy*dz)) ...
+                ./(2*eps_r_x(fi)*eps_0+dt*sigma_e_x(fi)+a_term);
+        case 'y'
+            fi = create_linear_index_list(eps_r_y,is:ie,js:je-1,ks:ke);
+            a_term = (dt*dy)/(R*dz*dx);
+            Ceye(fi) = ...
+                (2*eps_0*eps_r_y(fi)-dt*sigma_e_y(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_y(fi)+dt*sigma_e_y(fi)+a_term);
+            Ceyhx(fi)= (2*dt/dz)...
+                ./ (2*eps_r_y(fi)*eps_0+dt*sigma_e_y(fi)+a_term);
+            Ceyhz(fi)= -(2*dt/dx) ...
+                ./ (2*eps_r_y(fi)*eps_0 + dt*sigma_e_y(fi)+a_term);
+            current_sources(ind).Ceys = -(2*dt/(dz*dx)) ...
+                ./(2*eps_r_y(fi)*eps_0+dt*sigma_e_y(fi)+a_term);
+        case 'z'
+            fi = create_linear_index_list(eps_r_z,is:ie,js:je,ks:ke-1);
+            a_term = (dt*dz)/(R*dx*dy);
+            Ceze(fi) = ...
+                (2*eps_0*eps_r_z(fi)-dt*sigma_e_z(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_z(fi)+dt*sigma_e_z(fi)+a_term);
+            Cezhy(fi)= (2*dt/dx)...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+            Cezhx(fi)= -(2*dt/dy) ...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+            current_sources(ind).Cezs = -(2*dt/(dx*dy)) ...
+                ./(2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+    end
+    current_sources(ind).field_indices = fi;
+end
+%initialize_resistor_updating_coefficients;
+disp('initializing resistor updating coefficients');
+
+for ind = 1:number_of_resistors
+    is = resistors(ind).is;
+    js = resistors(ind).js;
+    ks = resistors(ind).ks;
+    ie = resistors(ind).ie;
+    je = resistors(ind).je;
+    ke = resistors(ind).ke;
+    
+    R = resistors(ind).resistance_per_component;
+    
+    switch (resistors(ind).direction(1))
+        case 'x'
+            fi = create_linear_index_list(eps_r_x,is:ie-1,js:je,ks:ke);
+            a_term = (dt*dx)/(R*dy*dz);
+            Cexe(fi) = ...
+                (2*eps_0*eps_r_x(fi)-dt*sigma_e_x(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_x(fi)+dt*sigma_e_x(fi)+a_term);
+            Cexhz(fi)= (2*dt/dy)...
+                ./ (2*eps_r_x(fi)*eps_0+dt*sigma_e_x(fi)+a_term);
+            Cexhy(fi)= -(2*dt/dz) ...
+                ./ (2*eps_r_x(fi)*eps_0 + dt*sigma_e_x(fi)+a_term);
+        case 'y'
+            fi = create_linear_index_list(eps_r_y, is:ie,js:je-1,ks:ke);
+            a_term = (dt*dy)/(R*dz*dx);
+            Ceye(fi) = ...
+                (2*eps_0*eps_r_y(fi)-dt*sigma_e_y(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_y(fi)+dt*sigma_e_y(fi)+a_term);
+            Ceyhx(fi)= (2*dt/dz)...
+                ./ (2*eps_r_y(fi)*eps_0+dt*sigma_e_y(fi)+a_term);
+            Ceyhz(fi)= -(2*dt/dx) ...
+                ./ (2*eps_r_y(fi)*eps_0 + dt*sigma_e_y(fi)+a_term);
+        case 'z'
+            fi = create_linear_index_list(eps_r_z,is:ie,js:je,ks:ke-1);
+            a_term = (dt*dz)/(R*dx*dy);
+            Ceze(fi) = ...
+                (2*eps_0*eps_r_z(fi)-dt*sigma_e_z(fi)-a_term) ...
+                ./ (2*eps_0*eps_r_z(fi)+dt*sigma_e_z(fi)+a_term);
+            Cezhy(fi)= (2*dt/dx)...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+            Cezhx(fi)= -(2*dt/dy) ...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+    end
+    resistors(ind).field_indices = fi;
+end
+%initialize_capacitor_updating_coefficients;
+disp('initializing capacitor updating coefficients');
+
+for ind = 1:number_of_capacitors
+    is = capacitors(ind).is;
+    js = capacitors(ind).js;
+    ks = capacitors(ind).ks;
+    ie = capacitors(ind).ie;
+    je = capacitors(ind).je;
+    ke = capacitors(ind).ke;
+    
+    C = capacitors(ind).capacitance_per_component;
+    
+    switch (capacitors(ind).direction(1))
+        case 'x'
+            fi = create_linear_index_list(eps_r_x,is:ie-1,js:je,ks:ke);
+            a_term = (2*C*dx)/(dy*dz);
+            Cexe(fi) = ...
+                (2*eps_0*eps_r_x(fi)-dt*sigma_e_x(fi)+a_term) ...
+                ./ (2*eps_0*eps_r_x(fi)+dt*sigma_e_x(fi)+a_term);
+            Cexhz(fi)= (2*dt/dy)...
+                ./ (2*eps_r_x(fi)*eps_0+dt*sigma_e_x(fi)+a_term);
+            Cexhy(fi)= -(2*dt/dz) ...
+                ./ (2*eps_r_x(fi)*eps_0 + dt*sigma_e_x(fi)+a_term);
+        case 'y'
+            fi = create_linear_index_list(eps_r_y,is:ie,js:je-1,ks:ke);
+            a_term = (2*C*dy)/(dz*dx);
+            Ceye(fi) = ...
+                (2*eps_0*eps_r_y(fi)-dt*sigma_e_y(fi)+a_term) ...
+                ./ (2*eps_0*eps_r_y(fi)+dt*sigma_e_y(fi)+a_term);
+            Ceyhx(fi)= (2*dt/dz)...
+                ./ (2*eps_r_y(fi)*eps_0+dt*sigma_e_y(fi)+a_term);
+            Ceyhz(fi)= -(2*dt/dx) ...
+                ./ (2*eps_r_y(fi)*eps_0 + dt*sigma_e_y(fi)+a_term);
+        case 'z'
+            fi = create_linear_index_list(eps_r_z,is:ie,js:je,ks:ke-1);
+            a_term = (2*C*dz)/(dx*dy);
+            Ceze(fi) = ...
+                (2*eps_0*eps_r_z(fi)-dt*sigma_e_z(fi)+a_term) ...
+                ./ (2*eps_0*eps_r_z(fi)+dt*sigma_e_z(fi)+a_term);
+            Cezhy(fi)= (2*dt/dx)...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+            Cezhx(fi)= -(2*dt/dy) ...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi)+a_term);
+    end
+    capacitors(ind).field_indices = fi;
+end
+%initialize_inductor_updating_coefficients;
+disp('initializing inductor updating coefficients');
+
+for ind = 1:number_of_inductors
+    is = inductors(ind).is;
+    js = inductors(ind).js;
+    ks = inductors(ind).ks;
+    ie = inductors(ind).ie;
+    je = inductors(ind).je;
+    ke = inductors(ind).ke;
+    
+    L = inductors(ind).inductance_per_component;
+    
+    switch (inductors(ind).direction(1))
+        case 'x'
+            fi = create_linear_index_list(eps_r_x,is:ie-1,js:je,ks:ke);
+            inductors(ind).Cexj = -(2*dt) ...
+                ./ (2*eps_r_x(fi)*eps_0+dt*sigma_e_x(fi));
+            inductors(ind).Jix = zeros(size(fi));
+            inductors(ind).Cjex = (dt*dx)/ (L*dy*dz);
+        case 'y'
+            fi = create_linear_index_list(eps_r_y,is:ie,js:je-1,ks:ke);
+            inductors(ind).Ceyj = -(2*dt) ...
+                ./ (2*eps_r_y(fi)*eps_0+dt*sigma_e_y(fi));
+            inductors(ind).Jiy = zeros(size(fi));
+            inductors(ind).Cjey = (dt*dy)/ (L*dz*dx);
+        case 'z'
+            fi = create_linear_index_list(eps_r_z,is:ie,js:je,ks:ke-1);
+            inductors(ind).Cezj = -(2*dt) ...
+                ./ (2*eps_r_z(fi)*eps_0+dt*sigma_e_z(fi));
+            inductors(ind).Jiz = zeros(size(fi));
+            inductors(ind).Cjez = (dt*dz)/ (L*dx*dy);
+    end
+    inductors(ind).field_indices = fi;
+end
+%initialize_diode_updating_coefficients;
+disp('initializing diode updating coefficients');
+
+q = 1.602*1e-19; % charge of an electron
+k = 1.38066e-23; % Boltzman constant, joule/kelvin
+T = 273+27;      % Kelvin; room temperature
+I_0 = 1e-14;     % saturation current
+
+for ind = 1:number_of_diodes
+    is = diodes(ind).is;
+    js = diodes(ind).js;
+    ks = diodes(ind).ks;
+    ie = diodes(ind).ie;
+    je = diodes(ind).je;
+    ke = diodes(ind).ke;
+    
+    if strcmp(diodes(ind).direction(2),'n')
+        sgn = -1;
+    else
+        sgn = 1;
+    end
+    switch (diodes(ind).direction(1))
+        case 'x'
+            fi = create_linear_index_list(eps_r_x,is,js,ks);
+            diodes(ind).B = sgn*q*dx/(2*k*T);
+            diodes(ind).Cexd = ...
+                -sgn*(2*dt*I_0/(dy*dz))*exp(diodes(ind).B) ...
+                ./(2*eps_r_x(fi)*eps_0 + dt*sigma_e_x(fi));
+            diodes(ind).Exn = 0;
+        case 'y'
+            fi = create_linear_index_list(eps_r_y,is,js,ks);
+            diodes(ind).B = sgn*q*dy/(2*k*T);
+            diodes(ind).Ceyd = ...
+                -sgn*(2*dt*I_0/(dz*dx))*exp(diodes(ind).B) ...
+                ./(2*eps_r_y(fi)*eps_0 + dt*sigma_e_y(fi));
+            diodes(ind).Eyn = 0;
+        case 'z'
+            fi = create_linear_index_list(eps_r_z,is,js,ks);
+            diodes(ind).B = sgn*q*dz/(2*k*T);
+            diodes(ind).Cezd = ...
+                -sgn*(2*dt*I_0/(dx*dy))*exp(diodes(ind).B) ...
+                ./(2*eps_r_z(fi)*eps_0 + dt*sigma_e_z(fi));
+            diodes(ind).Ezn = 0;
+    end
+    diodes(ind).field_indices = fi;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% start_CPML
+
+%initialize_boundary_conditions;
+% initialize boundary parameters
+
+% define logical parameters for the conditions that  will be used often 
+is_cpml_xn = false; is_cpml_xp = false; is_cpml_yn = false; 
+is_cpml_yp = false; is_cpml_zn = false; is_cpml_zp = false; 
+is_any_side_cpml = false;
+if strcmp(boundary.type_xn, 'cpml')
+    is_cpml_xn = true;
+    n_cpml_xn = abs(boundary.cpml_number_of_cells_xn);
+end
+if strcmp(boundary.type_xp, 'cpml')
+    is_cpml_xp = true;
+    n_cpml_xp = abs(boundary.cpml_number_of_cells_xp);
+end
+if strcmp(boundary.type_yn, 'cpml')
+    is_cpml_yn = true;
+    n_cpml_yn = abs(boundary.cpml_number_of_cells_yn);
+end
+if strcmp(boundary.type_yp, 'cpml')
+    is_cpml_yp = true;
+    n_cpml_yp = abs(boundary.cpml_number_of_cells_yp);
+end
+if strcmp(boundary.type_zn, 'cpml')
+    is_cpml_zn = true;
+    n_cpml_zn = abs(boundary.cpml_number_of_cells_zn);
+end
+if strcmp(boundary.type_zp, 'cpml')
+    is_cpml_zp = true;
+    n_cpml_zp = abs(boundary.cpml_number_of_cells_zp);
+end
+
+if (is_cpml_xn || is_cpml_xp || is_cpml_yn ...
+        || is_cpml_yp || is_cpml_zn || is_cpml_zp)
+    is_any_side_cpml = true;
+end
+
+% Call CPML initialization routine if any side is CPML
+if is_any_side_cpml
+    %initialize_CPML_ABC;
+    % Initialize CPML boundary condition    
+
+    p_order = boundary.cpml_order; % order of the polynomial distribution
+    sigma_ratio = boundary.cpml_sigma_factor;
+    kappa_max = boundary.cpml_kappa_max;
+    alpha_min = boundary.cpml_alpha_min;
+    alpha_max = boundary.cpml_alpha_max;
+    
+    % Initialize cpml for xn region
+    if is_cpml_xn
+    
+        % define one-dimensional temporary cpml parameter arrays 
+        sigma_max = sigma_ratio  * (p_order+1)/(150*pi*dx);
+        ncells = n_cpml_xn;
+        rho_e = ([ncells:-1:1]-0.75)/ncells;
+        rho_m = ([ncells:-1:1]-0.25)/ncells;
+        sigma_pex_xn = sigma_max * rho_e.^p_order;
+        sigma_pmx_xn = sigma_max * rho_m.^p_order;
+        sigma_pmx_xn = (mu_0/eps_0) * sigma_pmx_xn;
+        kappa_ex_xn = 1 + (kappa_max - 1) * rho_e.^p_order;
+        kappa_mx_xn = 1 + (kappa_max - 1) * rho_m.^p_order;
+        alpha_ex_xn = alpha_min + (alpha_max - alpha_min) * (1-rho_e);
+        alpha_mx_xn = alpha_min + (alpha_max - alpha_min) * (1-rho_m);
+        alpha_mx_xn = (mu_0/eps_0) * alpha_mx_xn;
+        
+        % define one-dimensional cpml parameter arrays 
+        cpml_b_ex_xn = exp((-dt/eps_0) ...
+            *((sigma_pex_xn./kappa_ex_xn)+ alpha_ex_xn)); 
+        cpml_a_ex_xn = (1/dx)*(cpml_b_ex_xn-1.0).* sigma_pex_xn ...
+            ./(kappa_ex_xn.*(sigma_pex_xn+kappa_ex_xn.*alpha_ex_xn));
+        cpml_b_mx_xn = exp((-dt/mu_0) ...
+            *((sigma_pmx_xn./kappa_mx_xn)+ alpha_mx_xn)); 
+        cpml_a_mx_xn = (1/dx)*(cpml_b_mx_xn-1.0) .* sigma_pmx_xn ...
+            ./(kappa_mx_xn.*(sigma_pmx_xn+kappa_mx_xn.*alpha_mx_xn));
+    
+        % Create and initialize 2D cpml convolution parameters 
+        Psi_eyx_xn = zeros(ncells,ny,nzp1); 
+        Psi_ezx_xn = zeros(ncells,nyp1,nz); 
+        Psi_hyx_xn = zeros(ncells,nyp1,nz); 
+        Psi_hzx_xn = zeros(ncells,ny,nzp1); 
+    
+        % Create and initialize 2D cpml convolution coefficients 
+        % Notice that Ey(1,:,:) and Ez(1,:,:) are not updated by cmpl 
+        CPsi_eyx_xn = Ceyhz(2:ncells+1,:,:)*dx;
+        CPsi_ezx_xn = Cezhy(2:ncells+1,:,:)*dx;
+        CPsi_hyx_xn = Chyez(1:ncells,:,:)*dx;
+        CPsi_hzx_xn = Chzey(1:ncells,:,:)*dx;
+        
+        % Adjust FDTD coefficients in the CPML region 
+        % Notice that Ey(1,:,:) and Ez(1,:,:) are not updated by cmpl 
+        for i = 1: ncells                                           
+            Ceyhz(i+1,:,:) = Ceyhz(i+1,:,:)/kappa_ex_xn(i);
+            Cezhy(i+1,:,:) = Cezhy(i+1,:,:)/kappa_ex_xn(i);
+            Chyez(i,:,:) = Chyez(i,:,:)/kappa_mx_xn(i);
+            Chzey(i,:,:) = Chzey(i,:,:)/kappa_mx_xn(i);
+        end
+        
+        % Delete temporary arrays. These arrays will not be used any more.
+        clear sigma_pex_xn sigma_pmx_xn;
+        clear kappa_ex_xn kappa_mx_xn;
+        clear alpha_ex_xn alpha_mx_xn;
+    end
+    
+    % Initialize cpml for xp region
+    if is_cpml_xp
+    
+        % define one-dimensional temporary cpml parameter arrays 
+        sigma_max = sigma_ratio  * (p_order+1)/(150*pi*dx);
+        ncells = n_cpml_xp;
+        rho_e = ([1:ncells]-0.75)/ncells;
+        rho_m = ([1:ncells]-0.25)/ncells;
+        sigma_pex_xp = sigma_max * rho_e.^p_order;
+        sigma_pmx_xp = sigma_max * rho_m.^p_order;
+        sigma_pmx_xp = (mu_0/eps_0) * sigma_pmx_xp;
+        kappa_ex_xp = 1 + (kappa_max - 1) * rho_e.^p_order;
+        kappa_mx_xp = 1 + (kappa_max - 1) * rho_m.^p_order;
+        alpha_ex_xp = alpha_min + (alpha_max - alpha_min) * (1-rho_e);
+        alpha_mx_xp = alpha_min + (alpha_max - alpha_min) * (1-rho_m);
+        alpha_mx_xp = (mu_0/eps_0) * alpha_mx_xp;
+        
+        % define one-dimensional cpml parameter arrays 
+        cpml_b_ex_xp = exp((-dt/eps_0) ...
+            *((sigma_pex_xp./kappa_ex_xp)+ alpha_ex_xp)); 
+        cpml_a_ex_xp = (1/dx)*(cpml_b_ex_xp-1.0).* sigma_pex_xp ...
+            ./(kappa_ex_xp.*(sigma_pex_xp+kappa_ex_xp.*alpha_ex_xp));
+        cpml_b_mx_xp = exp((-dt/mu_0) ...
+            *((sigma_pmx_xp./kappa_mx_xp)+ alpha_mx_xp)); 
+        cpml_a_mx_xp = (1/dx)*(cpml_b_mx_xp-1.0) .* sigma_pmx_xp ...
+            ./(kappa_mx_xp.*(sigma_pmx_xp+kappa_mx_xp.*alpha_mx_xp));
+    
+        % Create and initialize 2D cpml convolution parameters 
+        Psi_eyx_xp = zeros(ncells,ny,nzp1); 
+        Psi_ezx_xp = zeros(ncells,nyp1,nz); 
+        Psi_hyx_xp = zeros(ncells,nyp1,nz); 
+        Psi_hzx_xp = zeros(ncells,ny,nzp1); 
+    
+        % Create and initialize 2D cpml convolution coefficients 
+        % Notice that Ey(nxp1,:,:) and Ez(nxp1,:,:) are not updated by cmpl 
+        CPsi_eyx_xp = Ceyhz(nxp1-ncells:nx,:,:)*dx;
+        CPsi_ezx_xp = Cezhy(nxp1-ncells:nx,:,:)*dx;
+        CPsi_hyx_xp = Chyez(nxp1-ncells:nx,:,:)*dx;
+        CPsi_hzx_xp = Chzey(nxp1-ncells:nx,:,:)*dx;
+        
+        % Adjust FDTD coefficients in the CPML region 
+        % Notice that Ey(nxp1,:,:) and Ez(nxp1,:,:) are not updated by cmpl 
+        for i = 1: ncells                                           
+            Ceyhz(nx-ncells+i,:,:) = Ceyhz(nx-ncells+i,:,:)/kappa_ex_xp(i);
+            Cezhy(nx-ncells+i,:,:) = Cezhy(nx-ncells+i,:,:)/kappa_ex_xp(i);
+            Chyez(nx-ncells+i,:,:) = Chyez(nx-ncells+i,:,:)/kappa_mx_xp(i);
+            Chzey(nx-ncells+i,:,:) = Chzey(nx-ncells+i,:,:)/kappa_mx_xp(i);
+        end
+        
+        % Delete temporary arrays. These arrays will not be used any more.
+        clear sigma_pex_xp sigma_pmx_xp;
+        clear kappa_ex_xp kappa_mx_xp;
+        clear alpha_ex_xp alpha_mx_xp;
+    end
+    
+    
+    
+    % Initialize cpml for yn region
+    if is_cpml_yn
+    
+        % define one-dimensional temporary cpml parameter arrays 
+        sigma_max = sigma_ratio  * (p_order+1)/(150*pi*dy);
+        ncells = n_cpml_yn;
+        rho_e = ([ncells:-1:1]-0.75)/ncells;
+        rho_m = ([ncells:-1:1]-0.25)/ncells;
+        sigma_pey_yn = sigma_max * rho_e.^p_order;
+        sigma_pmy_yn = sigma_max * rho_m.^p_order;
+        sigma_pmy_yn = (mu_0/eps_0) * sigma_pmy_yn;
+        kappa_ey_yn = 1 + (kappa_max - 1) * rho_e.^p_order;
+        kappa_my_yn = 1 + (kappa_max - 1) * rho_m.^p_order;
+        alpha_ey_yn = alpha_min + (alpha_max - alpha_min) * (1-rho_e);
+        alpha_my_yn = alpha_min + (alpha_max - alpha_min) * (1-rho_m);
+        alpha_my_yn = (mu_0/eps_0) * alpha_my_yn;
+        
+        % define one-dimensional cpml parameter arrays 
+        cpml_b_ey_yn = exp((-dt/eps_0) ...
+            *((sigma_pey_yn./kappa_ey_yn)+ alpha_ey_yn)); 
+        cpml_a_ey_yn = (1/dy)*(cpml_b_ey_yn-1.0).* sigma_pey_yn ...
+            ./(kappa_ey_yn.*(sigma_pey_yn+kappa_ey_yn.*alpha_ey_yn));
+        cpml_b_my_yn = exp((-dt/mu_0) ...
+            *((sigma_pmy_yn./kappa_my_yn)+ alpha_my_yn)); 
+        cpml_a_my_yn = (1/dy)*(cpml_b_my_yn-1.0) .* sigma_pmy_yn ...
+            ./(kappa_my_yn.*(sigma_pmy_yn+kappa_my_yn.*alpha_my_yn));
+    
+        % Create and initialize 2D cpml convolution parameters 
+        Psi_ezy_yn = zeros(nxp1,ncells,nz); 
+        Psi_exy_yn = zeros(nx,ncells,nzp1); 
+        Psi_hzy_yn = zeros(nx,ncells,nzp1); 
+        Psi_hxy_yn = zeros(nxp1,ncells,nz); 
+    
+        % Create and initialize 2D cpml convolution coefficients 
+        % Notice that Ez(:,1,:) and Ex(:,1,:) are not updated by cmpl 
+        CPsi_ezy_yn = Cezhx(:,2:ncells+1,:)*dy;
+        CPsi_exy_yn = Cexhz(:,2:ncells+1,:)*dy;
+        CPsi_hzy_yn = Chzex(:,1:ncells,:)*dy;
+        CPsi_hxy_yn = Chxez(:,1:ncells,:)*dy;
+        
+        % Adjust FDTD coefficients in the CPML region 
+        % Notice that Ez(:,1,:) and Ex(:,1,:) are not updated by cmpl 
+        for i = 1: ncells                                           
+            Cezhx(:,i+1,:) = Cezhx(:,i+1,:)/kappa_ey_yn(i);
+            Cexhz(:,i+1,:) = Cexhz(:,i+1,:)/kappa_ey_yn(i);
+            Chzex(:,i,:) = Chzex(:,i,:)/kappa_my_yn(i);
+            Chxez(:,i,:) = Chxez(:,i,:)/kappa_my_yn(i);
+        end
+        
+        % Delete temporary arrays. These arrays will not be used any more.
+        clear sigma_pey_yn sigma_pmy_yn;
+        clear kappa_ey_yn kappa_my_yn;
+        clear alpha_ey_yn alpha_my_yn;
+    end
+    
+    % Initialize cpml for yp region
+    if is_cpml_yp
+    
+        % define one-dimensional temporary cpml parameter arrays 
+        sigma_max = sigma_ratio  * (p_order+1)/(150*pi*dy);
+        ncells = n_cpml_yp;
+        rho_e = ([1:ncells]-0.75)/ncells;
+        rho_m = ([1:ncells]-0.25)/ncells;
+        sigma_pey_yp = sigma_max * rho_e.^p_order;
+        sigma_pmy_yp = sigma_max * rho_m.^p_order;
+        sigma_pmy_yp = (mu_0/eps_0) * sigma_pmy_yp;
+        kappa_ey_yp = 1 + (kappa_max - 1) * rho_e.^p_order;
+        kappa_my_yp = 1 + (kappa_max - 1) * rho_m.^p_order;
+        alpha_ey_yp = alpha_min + (alpha_max - alpha_min) * (1-rho_e);
+        alpha_my_yp = alpha_min + (alpha_max - alpha_min) * (1-rho_m);
+        alpha_my_yp = (mu_0/eps_0) * alpha_my_yp;
+        
+        % define one-dimensional cpml parameter arrays 
+        cpml_b_ey_yp = exp((-dt/eps_0) ...
+            *((sigma_pey_yp./kappa_ey_yp)+ alpha_ey_yp)); 
+        cpml_a_ey_yp = (1/dy)*(cpml_b_ey_yp-1.0).* sigma_pey_yp ...
+            ./(kappa_ey_yp.*(sigma_pey_yp+kappa_ey_yp.*alpha_ey_yp));
+        cpml_b_my_yp = exp((-dt/mu_0) ...
+            *((sigma_pmy_yp./kappa_my_yp)+ alpha_my_yp)); 
+        cpml_a_my_yp = (1/dy)*(cpml_b_my_yp-1.0) .* sigma_pmy_yp ...
+            ./(kappa_my_yp.*(sigma_pmy_yp+kappa_my_yp.*alpha_my_yp));
+    
+        % Create and initialize 2D cpml convolution parameters 
+        Psi_ezy_yp = zeros(nxp1,ncells,nz); 
+        Psi_exy_yp = zeros(nx,ncells,nzp1); 
+        Psi_hzy_yp = zeros(nx,ncells,nzp1); 
+        Psi_hxy_yp = zeros(nxp1,ncells,nz); 
+    
+        % Create and initialize 2D cpml convolution coefficients 
+        % Notice that Ez(:,nyp1,:) and Ex(:,nyp1,:) are not updated by cmpl 
+        CPsi_ezy_yp = Cezhx(:,nyp1-ncells:ny,:)*dy;
+        CPsi_exy_yp = Cexhz(:,nyp1-ncells:ny,:)*dy;
+        CPsi_hzy_yp = Chzex(:,nyp1-ncells:ny,:)*dy;
+        CPsi_hxy_yp = Chxez(:,nyp1-ncells:ny,:)*dy;
+        
+        % Adjust FDTD coefficients in the CPML region 
+        % Notice that Ez(:,nyp1,:) and Ex(:,nyp1,:) are not updated by cmpl 
+        for i = 1: ncells                                           
+            Cezhx(:,ny-ncells+i,:) = Cezhx(:,ny-ncells+i,:)/kappa_ey_yp(i);
+            Cexhz(:,ny-ncells+i,:) = Cexhz(:,ny-ncells+i,:)/kappa_ey_yp(i);
+            Chzex(:,ny-ncells+i,:) = Chzex(:,ny-ncells+i,:)/kappa_my_yp(i);
+            Chxez(:,ny-ncells+i,:) = Chxez(:,ny-ncells+i,:)/kappa_my_yp(i);
+        end
+        
+        % Delete temporary arrays. These arrays will not be used any more.
+        clear sigma_pey_yp sigma_pmy_yp;
+        clear kappa_ey_yp kappa_my_yp;
+        clear alpha_ey_yp alpha_my_yp;
+    end
+    
+    % Initialize cpml for zn region
+    if is_cpml_zn
+    
+        % define one-dimensional temporary cpml parameter arrays 
+        sigma_max = sigma_ratio  * (p_order+1)/(150*pi*dz);
+        ncells = n_cpml_zn;
+        rho_e = ([ncells:-1:1]-0.75)/ncells;
+        rho_m = ([ncells:-1:1]-0.25)/ncells;
+        sigma_pez_zn = sigma_max * rho_e.^p_order;
+        sigma_pmz_zn = sigma_max * rho_m.^p_order;
+        sigma_pmz_zn = (mu_0/eps_0) * sigma_pmz_zn;
+        kappa_ez_zn = 1 + (kappa_max - 1) * rho_e.^p_order;
+        kappa_mz_zn = 1 + (kappa_max - 1) * rho_m.^p_order;
+        alpha_ez_zn = alpha_min + (alpha_max - alpha_min) * (1-rho_e);
+        alpha_mz_zn = alpha_min + (alpha_max - alpha_min) * (1-rho_m);
+        alpha_mz_zn = (mu_0/eps_0) * alpha_mz_zn;
+        
+        % define one-dimensional cpml parameter arrays 
+        cpml_b_ez_zn = exp((-dt/eps_0) ...
+            *((sigma_pez_zn./kappa_ez_zn)+ alpha_ez_zn)); 
+        cpml_a_ez_zn = (1/dz)*(cpml_b_ez_zn-1.0).* sigma_pez_zn ...
+            ./(kappa_ez_zn.*(sigma_pez_zn+kappa_ez_zn.*alpha_ez_zn));
+        cpml_b_mz_zn = exp((-dt/mu_0) ...
+            *((sigma_pmz_zn./kappa_mz_zn)+ alpha_mz_zn)); 
+        cpml_a_mz_zn = (1/dz)*(cpml_b_mz_zn-1.0) .* sigma_pmz_zn ...
+            ./(kappa_mz_zn.*(sigma_pmz_zn+kappa_mz_zn.*alpha_mz_zn));
+    
+        % Create and initialize 2D cpml convolution parameters 
+        Psi_exz_zn = zeros(nx,nyp1,ncells); 
+        Psi_eyz_zn = zeros(nxp1,ny,ncells); 
+        Psi_hxz_zn = zeros(nxp1,ny,ncells); 
+        Psi_hyz_zn = zeros(nx,nyp1,ncells); 
+    
+        % Create and initialize 2D cpml convolution coefficients 
+        % Notice that Ex(:,:,1) and Ey(:,:,1) are not updated by cmpl 
+        CPsi_exz_zn = Cexhy(:,:,2:ncells+1)*dz;
+        CPsi_eyz_zn = Ceyhx(:,:,2:ncells+1)*dz;
+        CPsi_hxz_zn = Chxey(:,:,1:ncells)*dz;
+        CPsi_hyz_zn = Chyex(:,:,1:ncells)*dz;
+        
+        % Adjust FDTD coefficients in the CPML region 
+        % Notice that Ex(:,:,1) and Ey(:,:,1) are not updated by cmpl 
+        for i = 1: ncells                                           
+            Cexhy(:,:,i+1) = Cexhy(:,:,i+1)/kappa_ez_zn(i);
+            Ceyhx(:,:,i+1) = Ceyhx(:,:,i+1)/kappa_ez_zn(i);
+            Chxey(:,:,i) = Chxey(:,:,i)/kappa_mz_zn(i);
+            Chyex(:,:,i) = Chyex(:,:,i)/kappa_mz_zn(i);
+        end
+        
+        % Delete temporary arrays. These arrays will not be used any more.
+        clear sigma_pez_zn sigma_pmz_zn;
+        clear kappa_ez_zn kappa_mz_zn;
+        clear alpha_ez_zn alpha_mz_zn;
+    end
+    
+    
+    
+    % Initialize cpml for zp region
+    if is_cpml_zp
+    
+        % define one-dimensional temporary cpml parameter arrays 
+        sigma_max = sigma_ratio  * (p_order+1)/(150*pi*dz);
+        ncells = n_cpml_zp;
+        rho_e = ([1:ncells]-0.75)/ncells;
+        rho_m = ([1:ncells]-0.25)/ncells;
+        sigma_pez_zp = sigma_max * rho_e.^p_order;
+        sigma_pmz_zp = sigma_max * rho_m.^p_order;
+        sigma_pmz_zp = (mu_0/eps_0) * sigma_pmz_zp;
+        kappa_ez_zp = 1 + (kappa_max - 1) * rho_e.^p_order;
+        kappa_mz_zp = 1 + (kappa_max - 1) * rho_m.^p_order;
+        alpha_ez_zp = alpha_min + (alpha_max - alpha_min) * (1-rho_e);
+        alpha_mz_zp = alpha_min + (alpha_max - alpha_min) * (1-rho_m);
+        alpha_mz_zp = (mu_0/eps_0) * alpha_mz_zp;
+        
+        % define one-dimensional cpml parameter arrays 
+        cpml_b_ez_zp = exp((-dt/eps_0) ...
+            *((sigma_pez_zp./kappa_ez_zp)+ alpha_ez_zp)); 
+        cpml_a_ez_zp = (1/dz)*(cpml_b_ez_zp-1.0).* sigma_pez_zp ...
+            ./(kappa_ez_zp.*(sigma_pez_zp+kappa_ez_zp.*alpha_ez_zp));
+        cpml_b_mz_zp = exp((-dt/mu_0) ...
+            *((sigma_pmz_zp./kappa_mz_zp)+ alpha_mz_zp)); 
+        cpml_a_mz_zp = (1/dz)*(cpml_b_mz_zp-1.0) .* sigma_pmz_zp ...
+            ./(kappa_mz_zp.*(sigma_pmz_zp+kappa_mz_zp.*alpha_mz_zp));
+    
+        % Create and initialize two-dimensional cpml convolution parameters 
+        Psi_exz_zp = zeros(nx,nyp1,ncells); 
+        Psi_eyz_zp = zeros(nxp1,ny,ncells); 
+        Psi_hxz_zp = zeros(nxp1,ny,ncells); 
+        Psi_hyz_zp = zeros(nx,nyp1,ncells); 
+    
+        % Create and initialize 2D cpml convolution coefficients 
+        % Notice that Ex(:,:,nzp1) and Ey(:,:,nzp1) are not updated by cmpl 
+        CPsi_exz_zp = Cexhy(:,:,nzp1-ncells:nz)*dz;
+        CPsi_eyz_zp = Ceyhx(:,:,nzp1-ncells:nz)*dz;
+        CPsi_hxz_zp = Chxey(:,:,nzp1-ncells:nz)*dz;
+        CPsi_hyz_zp = Chyex(:,:,nzp1-ncells:nz)*dz;
+        
+        % Adjust FDTD coefficients in the CPML region 
+        % Notice that Ex(:,:,nzp1) and Ey(:,:,nzp1) are not updated by cmpl 
+        for i = 1: ncells                                           
+            Cexhy(:,:,nz-ncells+i) = Cexhy(:,:,nz-ncells+i)/kappa_ez_zp(i);
+            Ceyhx(:,:,nz-ncells+i) = Ceyhx(:,:,nz-ncells+i)/kappa_ez_zp(i);
+            Chxey(:,:,nz-ncells+i) = Chxey(:,:,nz-ncells+i)/kappa_mz_zp(i);
+            Chyex(:,:,nz-ncells+i) = Chyex(:,:,nz-ncells+i)/kappa_mz_zp(i);
+        end
+        
+        % Delete temporary arrays. These arrays will not be used any more.
+        clear sigma_pez_zp sigma_pmz_zp;
+        clear kappa_ez_zp kappa_mz_zp;
+        clear alpha_ez_zp alpha_mz_zp;
+    end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% end_CPML
+
+
+% initialize_output_parameters;
+
+disp('initializing the output parameters');
+
+number_of_sampled_electric_fields  = size(sampled_electric_fields,2);
+number_of_sampled_magnetic_fields  = size(sampled_magnetic_fields,2);
+number_of_sampled_voltages  = size(sampled_voltages,2);
+number_of_sampled_currents  = size(sampled_currents,2);
+number_of_ports = size(ports,2);
+
+% intialize frequency domain parameters
+frequency_domain.frequencies = [frequency_domain.start: ...
+    frequency_domain.step:frequency_domain.end];
+frequency_domain.number_of_frequencies = ...
+    size(frequency_domain.frequencies,2);
+
+% initialize sampled electric field terms
+for ind=1:number_of_sampled_electric_fields
+    is = round((sampled_electric_fields(ind).x - fdtd_domain.min_x)/dx)+1;
+    js = round((sampled_electric_fields(ind).y - fdtd_domain.min_y)/dy)+1;
+    ks = round((sampled_electric_fields(ind).z - fdtd_domain.min_z)/dz)+1;
+    sampled_electric_fields(ind).is = is;
+    sampled_electric_fields(ind).js = js;
+    sampled_electric_fields(ind).ks = ks;
+    sampled_electric_fields(ind).sampled_value = ...
+        zeros(1, number_of_time_steps);
+    sampled_electric_fields(ind).time = ([1:number_of_time_steps])*dt;
+end
+
+% initialize sampled magnetic field terms
+for ind=1:number_of_sampled_magnetic_fields
+    is = round((sampled_magnetic_fields(ind).x - fdtd_domain.min_x)/dx)+1;
+    js = round((sampled_magnetic_fields(ind).y - fdtd_domain.min_y)/dy)+1;
+    ks = round((sampled_magnetic_fields(ind).z - fdtd_domain.min_z)/dz)+1;
+    sampled_magnetic_fields(ind).is = is;
+    sampled_magnetic_fields(ind).js = js;
+    sampled_magnetic_fields(ind).ks = ks;
+    sampled_magnetic_fields(ind).sampled_value = ...
+        zeros(1, number_of_time_steps);
+    sampled_magnetic_fields(ind).time = ([1:number_of_time_steps]-0.5)*dt;
+end
+
+% initialize sampled voltage terms
+for ind=1:number_of_sampled_voltages
+    is = round((sampled_voltages(ind).min_x - fdtd_domain.min_x)/dx)+1;
+    js = round((sampled_voltages(ind).min_y - fdtd_domain.min_y)/dy)+1;
+    ks = round((sampled_voltages(ind).min_z - fdtd_domain.min_z)/dz)+1;
+    ie = round((sampled_voltages(ind).max_x - fdtd_domain.min_x)/dx)+1;
+    je = round((sampled_voltages(ind).max_y - fdtd_domain.min_y)/dy)+1;
+    ke = round((sampled_voltages(ind).max_z - fdtd_domain.min_z)/dz)+1;
+    sampled_voltages(ind).is = is;
+    sampled_voltages(ind).js = js;
+    sampled_voltages(ind).ks = ks;
+    sampled_voltages(ind).ie = ie;
+    sampled_voltages(ind).je = je;
+    sampled_voltages(ind).ke = ke;
+    sampled_voltages(ind).sampled_value = ...
+        zeros(1, number_of_time_steps);
+    
+    switch (sampled_voltages(ind).direction(1))
+        case 'x'
+            fi = create_linear_index_list(Ex,is:ie-1,js:je,ks:ke);
+            sampled_voltages(ind).Csvf = -dx/((je-js+1)*(ke-ks+1));
+        case 'y'
+            fi = create_linear_index_list(Ey,is:ie,js:je-1,ks:ke);
+            sampled_voltages(ind).Csvf = -dy/((ke-ks+1)*(ie-is+1));
+        case 'z'
+            fi = create_linear_index_list(Ez,is:ie,js:je,ks:ke-1);
+            sampled_voltages(ind).Csvf = -dz/((ie-is+1)*(je-js+1));
+    end
+    if strcmp(sampled_voltages(ind).direction(2),'n')
+        sampled_voltages(ind).Csvf =  -1 * sampled_voltages(ind).Csvf;
+    end
+    sampled_voltages(ind).field_indices = fi;
+    sampled_voltages(ind).time = ([1:number_of_time_steps])*dt;
+end
+
+% initialize sampled current terms
+for ind=1:number_of_sampled_currents
+    is = round((sampled_currents(ind).min_x - fdtd_domain.min_x)/dx)+1;
+    js = round((sampled_currents(ind).min_y - fdtd_domain.min_y)/dy)+1;
+    ks = round((sampled_currents(ind).min_z - fdtd_domain.min_z)/dz)+1;
+    ie = round((sampled_currents(ind).max_x - fdtd_domain.min_x)/dx)+1;
+    je = round((sampled_currents(ind).max_y - fdtd_domain.min_y)/dy)+1;
+    ke = round((sampled_currents(ind).max_z - fdtd_domain.min_z)/dz)+1;
+    sampled_currents(ind).is = is;
+    sampled_currents(ind).js = js;
+    sampled_currents(ind).ks = ks;
+    sampled_currents(ind).ie = ie;
+    sampled_currents(ind).je = je;
+    sampled_currents(ind).ke = ke;
+    sampled_currents(ind).sampled_value = ...
+        zeros(1, number_of_time_steps);
+    sampled_currents(ind).time =([1:number_of_time_steps]-0.5)*dt;
+end
+
+% CH9 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% initialize_farfield_arrays 
+% initialize farfield arrays
+number_of_farfield_frequencies = size(farfield.frequencies,2);
+
+if number_of_farfield_frequencies == 0
+    return;
+end
+nc_farbuffer = farfield.number_of_cells_from_outer_boundary; 
+li = nc_farbuffer + 1;
+lj = nc_farbuffer + 1;
+lk = nc_farbuffer + 1;
+ui = nx - nc_farbuffer+1;
+uj = ny - nc_farbuffer+1;
+uk = nz - nc_farbuffer+1;
+
+farfield_w = 2*pi*farfield.frequencies;
+
+tjxyp = zeros(1,ui-li,1,uk-lk);
+tjxzp = zeros(1,ui-li,uj-lj,1);
+tjyxp = zeros(1,1,uj-lj,uk-lk);
+tjyzp = zeros(1,ui-li,uj-lj,1);
+tjzxp = zeros(1,1,uj-lj,uk-lk);
+tjzyp = zeros(1,ui-li,1,uk-lk);
+tjxyn = zeros(1,ui-li,1,uk-lk);
+tjxzn = zeros(1,ui-li,uj-lj,1);
+tjyxn = zeros(1,1,uj-lj,uk-lk);
+tjyzn = zeros(1,ui-li,uj-lj,1);
+tjzxn = zeros(1,1,uj-lj,uk-lk);
+tjzyn = zeros(1,ui-li,1,uk-lk);
+tmxyp = zeros(1,ui-li,1,uk-lk);
+tmxzp = zeros(1,ui-li,uj-lj,1);
+tmyxp = zeros(1,1,uj-lj,uk-lk);
+tmyzp = zeros(1,ui-li,uj-lj,1);
+tmzxp = zeros(1,1,uj-lj,uk-lk);
+tmzyp = zeros(1,ui-li,1,uk-lk);
+tmxyn = zeros(1,ui-li,1,uk-lk);
+tmxzn = zeros(1,ui-li,uj-lj,1);
+tmyxn = zeros(1,1,uj-lj,uk-lk);
+tmyzn = zeros(1,ui-li,uj-lj,1);
+tmzxn = zeros(1,1,uj-lj,uk-lk);
+tmzyn = zeros(1,ui-li,1,uk-lk);
+
+cjxyp = zeros(number_of_farfield_frequencies,ui-li,1,uk-lk);
+cjxzp = zeros(number_of_farfield_frequencies,ui-li,uj-lj,1);
+cjyxp = zeros(number_of_farfield_frequencies,1,uj-lj,uk-lk);
+cjyzp = zeros(number_of_farfield_frequencies,ui-li,uj-lj,1);
+cjzxp = zeros(number_of_farfield_frequencies,1,uj-lj,uk-lk);
+cjzyp = zeros(number_of_farfield_frequencies,ui-li,1,uk-lk);
+cjxyn = zeros(number_of_farfield_frequencies,ui-li,1,uk-lk);
+cjxzn = zeros(number_of_farfield_frequencies,ui-li,uj-lj,1);
+cjyxn = zeros(number_of_farfield_frequencies,1,uj-lj,uk-lk);
+cjyzn = zeros(number_of_farfield_frequencies,ui-li,uj-lj,1);
+cjzxn = zeros(number_of_farfield_frequencies,1,uj-lj,uk-lk);
+cjzyn = zeros(number_of_farfield_frequencies,ui-li,1,uk-lk);
+cmxyp = zeros(number_of_farfield_frequencies,ui-li,1,uk-lk);
+cmxzp = zeros(number_of_farfield_frequencies,ui-li,uj-lj,1);
+cmyxp = zeros(number_of_farfield_frequencies,1,uj-lj,uk-lk);
+cmyzp = zeros(number_of_farfield_frequencies,ui-li,uj-lj,1);
+cmzxp = zeros(number_of_farfield_frequencies,1,uj-lj,uk-lk);
+cmzyp = zeros(number_of_farfield_frequencies,ui-li,1,uk-lk);
+cmxyn = zeros(number_of_farfield_frequencies,ui-li,1,uk-lk);
+cmxzn = zeros(number_of_farfield_frequencies,ui-li,uj-lj,1);
+cmyxn = zeros(number_of_farfield_frequencies,1,uj-lj,uk-lk);
+cmyzn = zeros(number_of_farfield_frequencies,ui-li,uj-lj,1);
+cmzxn = zeros(number_of_farfield_frequencies,1,uj-lj,uk-lk);
+cmzyn = zeros(number_of_farfield_frequencies,ui-li,1,uk-lk);
+
+% CH9 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% initialize_display_parameters;
+
+disp('initializing display parameters');
+
+% open figures for sampled electric fields
+for ind=1:number_of_sampled_electric_fields
+    if sampled_electric_fields(ind).display_plot == true
+        sampled_electric_fields(ind).figure_number = figure;
+        sampled_electric_fields(ind).plot_handle = plot(0,0,'b-');
+        %xlabel('time (ns)','fontsize',12);
+        %ylabel('(volt/meter)','fontsize',12);
+        %title(['sampled electric field [' ...
+         %   num2str(ind) ']'],'fontsize',12);
+        %grid on;
+        %hold on;
+    end
+end
+
+% open figures for sampled magnetic fields
+for ind=1:number_of_sampled_magnetic_fields
+    if sampled_magnetic_fields(ind).display_plot == true
+        sampled_magnetic_fields(ind).figure_number = figure;
+        sampled_magnetic_fields(ind).plot_handle = plot(0,0,'b-');
+        %xlabel('time (ns)','fontsize',12);
+        %ylabel('(ampere/meter)','fontsize',12);
+        %title(['sampled magnetic field [' num2str(ind) ']'], ...
+         %   'fontsize',12);
+        %grid on;
+        %hold on;
+    end
+end
+
+% initialize figures for sampled voltages
+for ind=1:number_of_sampled_voltages
+    if sampled_voltages(ind).display_plot == true
+        sampled_voltages(ind).figure_number = figure;
+        sampled_voltages(ind).plot_handle = plot(0,0,'b-');
+        %xlabel('time (ns)','fontsize',12);
+        %ylabel('(volt)','fontsize',12);
+        %title(['sampled voltage [' num2str(ind) ']'], ...
+         %   'fontsize',12);
+        %grid on;
+        %hold on;
+    end
+end
+
+% initialize figures for sampled currents
+for ind=1:number_of_sampled_currents
+    if sampled_currents(ind).display_plot == true
+        sampled_currents(ind).figure_number = figure;
+        sampled_currents(ind).plot_handle = plot(0,0,'b-');
+        %xlabel('time (ns)','fontsize',12);
+        %ylabel('(ampere)','fontsize',12);
+        %title(['sampled current [' num2str(ind) ']'], ...
+        %    'fontsize',12);
+        %grid on;
+        %hold on;
+    end
+end
+
+% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;
+
+disp (['Starting the time marching loop']);
+disp(['Total number of time steps : ' ...
+    num2str(number_of_time_steps)]);
+
+
+start_time = cputime;
+current_time = 0;
+
+for time_step = 1:number_of_time_steps
+    disp(time_step);
+    %update_magnetic_fields;
+    current_time  = current_time + dt/2;
+    
+    Hx = Chxh.*Hx+Chxey.*(Ey(1:nxp1,1:ny,2:nzp1)-Ey(1:nxp1,1:ny,1:nz)) ...
+        + Chxez.*(Ez(1:nxp1,2:nyp1,1:nz)-Ez(1:nxp1,1:ny,1:nz));
+    
+    Hy = Chyh.*Hy+Chyez.*(Ez(2:nxp1,1:nyp1,1:nz)-Ez(1:nx,1:nyp1,1:nz)) ...
+        + Chyex.*(Ex(1:nx,1:nyp1,2:nzp1)-Ex(1:nx,1:nyp1,1:nz));
+    
+    Hz = Chzh.*Hz+Chzex.*(Ex(1:nx,2:nyp1,1:nzp1)-Ex(1:nx,1:ny,1:nzp1))  ...
+        + Chzey.*(Ey(2:nxp1,1:ny,1:nzp1)-Ey(1:nx,1:ny,1:nzp1));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% start_CPML
+
+    % update_magnetic_fields_CPML_ABC
+    % apply CPML to magnetic field components
+    if is_cpml_xn
+        for i = 1: n_cpml_xn
+            Psi_hyx_xn(i,:,:) = cpml_b_mx_xn(i) * Psi_hyx_xn(i,:,:) ...
+                + cpml_a_mx_xn(i)*(Ez(i+1,:,:)-Ez(i,:,:)); 
+            Psi_hzx_xn(i,:,:) = cpml_b_mx_xn(i) * Psi_hzx_xn(i,:,:) ...
+                + cpml_a_mx_xn(i)*(Ey(i+1,:,:)-Ey(i,:,:)); 
+        end
+            Hy(1:n_cpml_xn,:,:) = Hy(1:n_cpml_xn,:,:) ...
+                + CPsi_hyx_xn(:,:,:) .* Psi_hyx_xn(:,:,:);
+            Hz(1:n_cpml_xn,:,:) = Hz(1:n_cpml_xn,:,:) ...
+                + CPsi_hzx_xn(:,:,:) .* Psi_hzx_xn(:,:,:);    
+    end
+    
+    if is_cpml_xp
+        n_st = nx - n_cpml_xp;
+        for i = 1:n_cpml_xp
+            Psi_hyx_xp(i,:,:) = cpml_b_mx_xp(i) * Psi_hyx_xp(i,:,:) ...
+                + cpml_a_mx_xp(i)*(Ez(i+n_st+1,:,:)-Ez(i+n_st,:,:)); 
+            Psi_hzx_xp(i,:,:) = cpml_b_mx_xp(i) * Psi_hzx_xp(i,:,:) ...
+                + cpml_a_mx_xp(i)*(Ey(i+n_st+1,:,:)-Ey(i+n_st,:,:)); 
+        end
+    
+            Hy(n_st+1:nx,:,:) = Hy(n_st+1:nx,:,:) ...
+                + CPsi_hyx_xp(:,:,:) .* Psi_hyx_xp(:,:,:);
+            Hz(n_st+1:nx,:,:) = Hz(n_st+1:nx,:,:) ...
+                + CPsi_hzx_xp(:,:,:) .* Psi_hzx_xp(:,:,:);    
+    end
+    
+    if is_cpml_yn
+        for i = 1:n_cpml_yn
+            Psi_hzy_yn(:,i,:) = cpml_b_my_yn(i) * Psi_hzy_yn(:,i,:) ...
+                + cpml_a_my_yn(i)*(Ex(:,i+1,:)-Ex(:,i,:)); 
+            Psi_hxy_yn(:,i,:) = cpml_b_my_yn(i) * Psi_hxy_yn(:,i,:) ...
+                + cpml_a_my_yn(i)*(Ez(:,i+1,:)-Ez(:,i,:)); 
+        end
+            Hz(:,1:n_cpml_yn,:) = Hz(:,1:n_cpml_yn,:) ...
+                + CPsi_hzy_yn(:,:,:) .* Psi_hzy_yn(:,:,:);
+            Hx(:,1:n_cpml_yn,:) = Hx(:,1:n_cpml_yn,:) ...
+                + CPsi_hxy_yn(:,:,:) .* Psi_hxy_yn(:,:,:);    
+    end
+    
+    if is_cpml_yp
+        n_st = ny - n_cpml_yp;
+        for i = 1:n_cpml_yp
+            Psi_hzy_yp(:,i,:) = cpml_b_my_yp(i) * Psi_hzy_yp(:,i,:) ...
+                + cpml_a_my_yp(i)*(Ex(:,i+n_st+1,:)-Ex(:,i+n_st,:)); 
+            Psi_hxy_yp(:,i,:) = cpml_b_my_yp(i) * Psi_hxy_yp(:,i,:) ...
+                + cpml_a_my_yp(i)*(Ez(:,i+n_st+1,:)-Ez(:,i+n_st,:)); 
+        end
+    
+            Hz(:,n_st+1:ny,:) = Hz(:,n_st+1:ny,:) ...
+                + CPsi_hzy_yp(:,:,:) .* Psi_hzy_yp(:,:,:);
+            Hx(:,n_st+1:ny,:) = Hx(:,n_st+1:ny,:) ...
+                + CPsi_hxy_yp(:,:,:) .* Psi_hxy_yp(:,:,:);    
+    end
+    
+    if is_cpml_zn
+        for i = 1:n_cpml_zn
+            Psi_hxz_zn(:,:,i) = cpml_b_mz_zn(i) * Psi_hxz_zn(:,:,i) ...
+                + cpml_a_mz_zn(i)*(Ey(:,:,i+1)-Ey(:,:,i)); 
+            Psi_hyz_zn(:,:,i) = cpml_b_mz_zn(i) * Psi_hyz_zn(:,:,i) ...
+                + cpml_a_mz_zn(i)*(Ex(:,:,i+1)-Ex(:,:,i)); 
+        end
+            Hx(:,:,1:n_cpml_zn) = Hx(:,:,1:n_cpml_zn) ...
+                + CPsi_hxz_zn(:,:,:) .* Psi_hxz_zn(:,:,:);
+            Hy(:,:,1:n_cpml_zn) = Hy(:,:,1:n_cpml_zn) ...
+                + CPsi_hyz_zn(:,:,:) .* Psi_hyz_zn(:,:,:);    
+    end
+    
+    if is_cpml_zp
+        n_st = nz - n_cpml_zp;
+        for i = 1:n_cpml_zp
+            Psi_hxz_zp(:,:,i) = cpml_b_mz_zp(i) * Psi_hxz_zp(:,:,i) ...
+                + cpml_a_mz_zp(i)*(Ey(:,:,i+n_st+1)-Ey(:,:,i+n_st)); 
+            Psi_hyz_zp(:,:,i) = cpml_b_mz_zp(i) * Psi_hyz_zp(:,:,i) ...
+                + cpml_a_mz_zp(i)*(Ex(:,:,i+n_st+1)-Ex(:,:,i+n_st)); 
+        end
+            Hx(:,:,n_st+1:nz) = Hx(:,:,n_st+1:nz) ...
+                + CPsi_hxz_zp(:,:,:) .* Psi_hxz_zp(:,:,:);
+            Hy(:,:,n_st+1:nz) = Hy(:,:,n_st+1:nz) ...
+                + CPsi_hyz_zp(:,:,:) .* Psi_hyz_zp(:,:,:);    
+    end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% end_CPML
+
+    
+    % capture_sampled_magnetic_fields;
+    % Capturing magnetic fields
+    
+    for ind=1:number_of_sampled_magnetic_fields
+        is = sampled_magnetic_fields(ind).is;
+        js = sampled_magnetic_fields(ind).js;
+        ks = sampled_magnetic_fields(ind).ks;
+        
+        switch (sampled_magnetic_fields(ind).component)
+            case 'x'
+                sampled_value = 0.25 * sum(sum(Hx(is,js-1:js,ks-1:ks)));
+            case 'y'
+                sampled_value = 0.25 * sum(sum(Hy(is-1:is,js,ks-1:ks)));
+            case 'z'
+                sampled_value = 0.25 * sum(sum(Hz(is-1:is,js-1:js,ks)));
+            case 'm'
+                svx = 0.25 * sum(sum(Hx(is,js-1:js,ks-1:ks)));
+                svy = 0.25 * sum(sum(Hy(is-1:is,js,ks-1:ks)));
+                svz = 0.25 * sum(sum(Hz(is-1:is,js-1:js,ks)));
+                sampled_value = sqrt(svx^2 + svy^2 + svz^2);
+        end
+        sampled_magnetic_fields(ind).sampled_value(time_step) = ...
+            sampled_value;
+    end
+    %capture_sampled_currents;
+    % Capturing sampled currents
+    
+    for ind=1:number_of_sampled_currents
+        is = sampled_currents(ind).is;
+        js = sampled_currents(ind).js;
+        ks = sampled_currents(ind).ks;
+        ie = sampled_currents(ind).ie;
+        je = sampled_currents(ind).je;
+        ke = sampled_currents(ind).ke;
+        
+        switch (sampled_currents(ind).direction(1))
+            case 'x'
+                sampled_value = ...
+                    + dy * sum(sum(sum(Hy(ie-1,js:je,ks-1)))) ...
+                    + dz * sum(sum(sum(Hz(ie-1,je,ks:ke))))...
+                    - dy * sum(sum(sum(Hy(ie-1,js:je,ke))))...
+                    - dz * sum(sum(sum(Hz(ie-1,js-1,ks:ke))));
+            case 'y'
+                sampled_value = ...
+                    + dz * sum(sum(sum(Hz(is-1,je-1,ks:ke)))) ...
+                    + dx * sum(sum(sum(Hx(is:ie,je-1,ke))))...
+                    - dz * sum(sum(sum(Hz(ie,je-1,ks:ke))))...
+                    - dx * sum(sum(sum(Hx(is:ie,je-1,ks-1))));
+            case 'z'
+                sampled_value = ...
+                    + dx * sum(sum(sum(Hx(is:ie,js-1,ke-1)))) ...
+                    + dy * sum(sum(sum(Hy(ie,js:je,ke-1))))...
+                    - dx * sum(sum(sum(Hx(is:ie,je,ke-1))))...
+                    - dy * sum(sum(sum(Hy(is-1,js:je,ke-1))));
+        end
+        if strcmp(sampled_currents(ind).direction(2),'n')
+            sampled_value = -1 * sampled_value;
+        end
+        sampled_currents(ind).sampled_value(time_step) = sampled_value;
+    end
+    % update_electric_fields;
+    
+    % update electric fields except the tangential components
+    % on the boundaries
+    
+    current_time  = current_time + dt/2;
+    
+    Ex(1:nx,2:ny,2:nz) = Cexe(1:nx,2:ny,2:nz).*Ex(1:nx,2:ny,2:nz) ...
+        + Cexhz(1:nx,2:ny,2:nz).*...
+        (Hz(1:nx,2:ny,2:nz)-Hz(1:nx,1:ny-1,2:nz)) ...
+        + Cexhy(1:nx,2:ny,2:nz).*...
+        (Hy(1:nx,2:ny,2:nz)-Hy(1:nx,2:ny,1:nz-1));
+    
+    Ey(2:nx,1:ny,2:nz)=Ceye(2:nx,1:ny,2:nz).*Ey(2:nx,1:ny,2:nz) ...
+        + Ceyhx(2:nx,1:ny,2:nz).*  ...
+        (Hx(2:nx,1:ny,2:nz)-Hx(2:nx,1:ny,1:nz-1)) ...
+        + Ceyhz(2:nx,1:ny,2:nz).*  ...
+        (Hz(2:nx,1:ny,2:nz)-Hz(1:nx-1,1:ny,2:nz));
+    
+    Ez(2:nx,2:ny,1:nz)=Ceze(2:nx,2:ny,1:nz).*Ez(2:nx,2:ny,1:nz) ...
+        + Cezhy(2:nx,2:ny,1:nz).*  ...
+        (Hy(2:nx,2:ny,1:nz)-Hy(1:nx-1,2:ny,1:nz)) ...
+        + Cezhx(2:nx,2:ny,1:nz).*...
+        (Hx(2:nx,2:ny,1:nz)-Hx(2:nx,1:ny-1,1:nz));
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% start_CPML
+
+    % update_electric_fields_CPML_ABC
+    % apply CPML to electric field components
+    if is_cpml_xn
+        for i = 1:n_cpml_xn
+            Psi_eyx_xn(i,:,:) = cpml_b_ex_xn(i) * Psi_eyx_xn(i,:,:) ...
+                + cpml_a_ex_xn(i)*(Hz(i+1,:,:)-Hz(i,:,:)); 
+            Psi_ezx_xn(i,:,:) = cpml_b_ex_xn(i) * Psi_ezx_xn(i,:,:) ...
+                + cpml_a_ex_xn(i)*(Hy(i+1,:,:)-Hy(i,:,:)); 
+        end
+        Ey(2:n_cpml_xn+1,:,:) = Ey(2:n_cpml_xn+1,:,:) ...
+                + CPsi_eyx_xn .* Psi_eyx_xn;
+        Ez(2:n_cpml_xn+1,:,:) = Ez(2:n_cpml_xn+1,:,:) ...
+                + CPsi_ezx_xn .* Psi_ezx_xn;    
+    end
+    
+    if is_cpml_xp 
+        n_st = nx - n_cpml_xp;
+        for i = 1:n_cpml_xp
+            Psi_eyx_xp(i,:,:) = cpml_b_ex_xp(i) * Psi_eyx_xp(i,:,:) ...
+                + cpml_a_ex_xp(i)*(Hz(i+n_st,:,:)-Hz(i+n_st-1,:,:)); 
+            Psi_ezx_xp(i,:,:) = cpml_b_ex_xp(i) * Psi_ezx_xp(i,:,:) ...
+                + cpml_a_ex_xp(i)*(Hy(i+n_st,:,:)-Hy(i+n_st-1,:,:)); 
+        end
+        Ey(n_st+1:nx,:,:) = Ey(n_st+1:nx,:,:) ...
+            + CPsi_eyx_xp .* Psi_eyx_xp;
+        Ez(n_st+1:nx,:,:) = Ez(n_st+1:nx,:,:) ...
+            + CPsi_ezx_xp .* Psi_ezx_xp;    
+    end
+    
+    if is_cpml_yn
+        for i = 1:n_cpml_yn
+            Psi_ezy_yn(:,i,:) = cpml_b_ey_yn(i) * Psi_ezy_yn(:,i,:) ...
+                + cpml_a_ey_yn(i)*(Hx(:,i+1,:)-Hx(:,i,:)); 
+            Psi_exy_yn(:,i,:) = cpml_b_ey_yn(i) * Psi_exy_yn(:,i,:) ...
+                + cpml_a_ey_yn(i)*(Hz(:,i+1,:)-Hz(:,i,:)); 
+        end
+        Ez(:,2:n_cpml_yn+1,:) = Ez(:,2:n_cpml_yn+1,:) ...
+            + CPsi_ezy_yn .* Psi_ezy_yn;
+        Ex(:,2:n_cpml_yn+1,:) = Ex(:,2:n_cpml_yn+1,:) ...
+            + CPsi_exy_yn .* Psi_exy_yn;    
+    end
+    
+    if is_cpml_yp
+        n_st = ny - n_cpml_yp;
+        for i = 1:n_cpml_yp
+            Psi_ezy_yp(:,i,:) = cpml_b_ey_yp(i) * Psi_ezy_yp(:,i,:) ...
+                + cpml_a_ey_yp(i)*(Hx(:,i+n_st,:)-Hx(:,i+n_st-1,:)); 
+            Psi_exy_yp(:,i,:) = cpml_b_ey_yp(i) * Psi_exy_yp(:,i,:) ...
+                + cpml_a_ey_yp(i)*(Hz(:,i+n_st,:)-Hz(:,i+n_st-1,:)); 
+        end
+        Ez(:,n_st+1:ny,:) = Ez(:,n_st+1:ny,:) ...
+            + CPsi_ezy_yp .* Psi_ezy_yp;
+        Ex(:,n_st+1:ny,:) = Ex(:,n_st+1:ny,:) ...
+            + CPsi_exy_yp .* Psi_exy_yp;    
+    end
+    
+    if is_cpml_zn
+        for i = 1:n_cpml_zn
+            Psi_exz_zn(:,:,i) = cpml_b_ez_zn(i) * Psi_exz_zn(:,:,i) ...
+                + cpml_a_ez_zn(i)*(Hy(:,:,i+1)-Hy(:,:,i)); 
+            Psi_eyz_zn(:,:,i) = cpml_b_ez_zn(i) * Psi_eyz_zn(:,:,i) ...
+                + cpml_a_ez_zn(i)*(Hx(:,:,i+1)-Hx(:,:,i)); 
+        end
+        Ex(:,:,2:n_cpml_zn+1) = Ex(:,:,2:n_cpml_zn+1) ...
+            + CPsi_exz_zn .* Psi_exz_zn;
+        Ey(:,:,2:n_cpml_zn+1) = Ey(:,:,2:n_cpml_zn+1) ...
+            + CPsi_eyz_zn .* Psi_eyz_zn;    
+    end
+    
+    if is_cpml_zp 
+        n_st = nz - n_cpml_zp;
+        for i = 1:n_cpml_zp
+            Psi_exz_zp(:,:,i) = cpml_b_ez_zp(i) * Psi_exz_zp(:,:,i) ...
+                + cpml_a_ez_zp(i)*(Hy(:,:,i+n_st)-Hy(:,:,i+n_st-1)); 
+            Psi_eyz_zp(:,:,i) = cpml_b_ez_zp(i) * Psi_eyz_zp(:,:,i) ...
+                + cpml_a_ez_zp(i)*(Hx(:,:,i+n_st)-Hx(:,:,i+n_st-1)); 
+        end
+        Ex(:,:,n_st+1:nz) = Ex(:,:,n_st+1:nz) ...
+            + CPsi_exz_zp .* Psi_exz_zp;
+        Ey(:,:,n_st+1:nz) = Ey(:,:,n_st+1:nz) ...
+            + CPsi_eyz_zp .* Psi_eyz_zp;    
+    end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% end_CPML
+
+    
+    %update_voltage_sources;
+    % updating electric field components
+    % associated with the voltage sources
+    
+    for ind = 1:number_of_voltage_sources
+        fi = voltage_sources(ind).field_indices;
+        switch (voltage_sources(ind).direction(1))
+            case 'x'
+                Ex(fi) = Ex(fi) + voltage_sources(ind).Cexs ...
+                    * voltage_sources(ind).voltage_per_e_field(time_step);
+            case 'y'
+                Ey(fi) = Ey(fi) + voltage_sources(ind).Ceys ...
+                    * voltage_sources(ind).voltage_per_e_field(time_step);
+            case 'z'
+                Ez(fi) = Ez(fi) + voltage_sources(ind).Cezs ...
+                    * voltage_sources(ind).voltage_per_e_field(time_step);
+        end
+    end
+    
+    %update_current_sources;
+    
+    % updating electric field components
+    % associated with the current sources
+    
+    for ind = 1:number_of_current_sources
+        fi = current_sources(ind).field_indices;
+        switch (current_sources(ind).direction(1))
+            case 'x'
+                Ex(fi) = Ex(fi) + current_sources(ind).Cexs ...
+                    * current_sources(ind).current_per_e_field(time_step);
+            case 'y'
+                Ey(fi) = Ey(fi) + current_sources(ind).Ceys ...
+                    * current_sources(ind).current_per_e_field(time_step);
+            case 'z'
+                Ez(fi) = Ez(fi) + current_sources(ind).Cezs ...
+                    * current_sources(ind).current_per_e_field(time_step);
+        end
+    end
+    
+    % update_inductors;
+    
+    
+    % updating electric field components
+    % associated with the inductors
+    
+    for ind = 1:number_of_inductors
+        fi = inductors(ind).field_indices;
+        switch (inductors(ind).direction(1))
+            case 'x'
+                Ex(fi) = Ex(fi) + inductors(ind).Cexj ...
+                    .* inductors(ind).Jix;
+                inductors(ind).Jix = inductors(ind).Jix ...
+                    + inductors(ind).Cjex .* Ex(fi);
+            case 'y'
+                Ey(fi) = Ey(fi) + inductors(ind).Ceyj ...
+                    .* inductors(ind).Jiy;
+                inductors(ind).Jiy = inductors(ind).Jiy ...
+                    + inductors(ind).Cjey .* Ey(fi);
+            case 'z'
+                Ez(fi) = Ez(fi) + inductors(ind).Cezj ...
+                    .* inductors(ind).Jiz;
+                inductors(ind).Jiz = inductors(ind).Jiz ...
+                    + inductors(ind).Cjez .* Ez(fi);
+        end
+    end                
+    
+    %update_diodes;
+    
+    % updating electric field components
+    % associated with the diodes
+    
+    for ind = 1:number_of_diodes
+        fi = diodes(ind).field_indices;
+        B  = diodes(ind).B;
+        switch (diodes(ind).direction(1))
+            case 'x'
+                E = diodes(ind).Exn;
+                C = -Ex(fi) + diodes(ind).Cexd;
+                A = -diodes(ind).Cexd * exp(B * E);
+                E = solve_diode_equation(A, B, C, E);
+                Ex(fi) = E;
+                diodes(ind).Exn = E;
+            case 'y'
+                E = diodes(ind).Eyn;
+                C = -Ex(fi) + diodes(ind).Ceyd;
+                A = -diodes(ind).Ceyd * exp(B * E);
+                E = solve_diode_equation(A, B, C, E);
+                Ey(fi) = E;
+                diodes(ind).Eyn = E;
+            case 'z'
+                E = diodes(ind).Ezn;
+                C = -Ez(fi) + diodes(ind).Cezd;
+                A = -diodes(ind).Cezd * exp(B * E);
+                E = solve_diode_equation(A, B, C, E);
+                Ez(fi) = E;
+                diodes(ind).Ezn = E;
+        end
+    end
+    
+    %capture_sampled_electric_fields;
+    % Capturing electric fields
+    
+    for ind=1:number_of_sampled_electric_fields
+        is = sampled_electric_fields(ind).is;
+        js = sampled_electric_fields(ind).js;
+        ks = sampled_electric_fields(ind).ks;
+        
+        switch (sampled_electric_fields(ind).component)
+            case 'x'
+                sampled_value = 0.5 * sum(Ex(is-1:is,js,ks));
+            case 'y'
+                sampled_value = 0.5 * sum(Ey(is,js-1:js,ks));
+            case 'z'
+                sampled_value = 0.5 * sum(Ez(is,js,ks-1:ks));
+            case 'm'
+                svx = 0.5 * sum(Ex(is-1:is,js,ks));
+                svy = 0.5 * sum(Ey(is,js-1:js,ks));
+                svz = 0.5 * sum(Ez(is,js,ks-1:ks));
+                sampled_value = sqrt(svx^2 + svy^2 + svz^2);
+        end
+        sampled_electric_fields(ind).sampled_value(time_step) = sampled_value;
+    end
+    
+    % capture_sampled_voltages;
+    
+    % Capturing sampled voltages
+    
+    for ind=1:number_of_sampled_voltages
+        fi   = sampled_voltages(ind).field_indices;
+        Csvf = sampled_voltages(ind).Csvf;
+        switch (sampled_voltages(ind).direction(1))
+            case 'x'
+                sampled_value = Csvf * sum(Ex(fi));
+            case 'y'
+                sampled_value = Csvf * sum(Ey(fi));
+            case 'z'
+                sampled_value = Csvf * sum(Ez(fi));
+        end
+        sampled_voltages(ind).sampled_value(time_step) = sampled_value;
+    end
+
+  % CH9 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % calculate_JandM 
+  % Calculate J and M on the imaginary farfiled surface
+    if number_of_farfield_frequencies == 0
+        return;
+    end
+    j = sqrt(-1);
+    
+    tmyxp(1,1,:,:) =  0.5*(Ez(ui,lj:uj-1,lk:uk-1)+Ez(ui,lj+1:uj,lk:uk-1));
+    tmzxp(1,1,:,:) = -0.5*(Ey(ui,lj:uj-1,lk:uk-1)+Ey(ui,lj:uj-1,lk+1:uk));
+    tmxyp(1,:,1,:) = -0.5*(Ez(li:ui-1,uj,lk:uk-1)+Ez(li+1:ui,uj,lk:uk-1));
+    tmzyp(1,:,1,:) =  0.5*(Ex(li:ui-1,uj,lk:uk-1)+Ex(li:ui-1,uj,lk+1:uk));
+    tmxzp(1,:,:,1) =  0.5*(Ey(li:ui-1,lj:uj-1,uk)+Ey(li+1:ui,lj:uj-1,uk));
+    tmyzp(1,:,:,1) = -0.5*(Ex(li:ui-1,lj:uj-1,uk)+Ex(li:ui-1,lj+1:uj,uk));
+    
+    tjyxp(1,1,:,:) =-0.25*(Hz(ui,lj:uj-1,lk:uk-1)+Hz(ui,lj:uj-1,lk+1:uk) ... 
+     + Hz (ui-1,lj:uj-1,lk:uk-1) + Hz (ui-1,lj:uj-1,lk+1:uk));
+    
+    tjzxp(1,1,:,:) =0.25*(Hy(ui,lj:uj-1,lk:uk-1)+Hy(ui,lj+1:uj,lk:uk-1) ... 
+     + Hy (ui-1,lj:uj-1,lk:uk-1) + Hy (ui-1,lj+1:uj,lk:uk-1));
+    
+    tjzyp(1,:,1,:) =-0.25*(Hx(li:ui-1,uj,lk:uk-1)+Hx(li+1:ui,uj,lk:uk-1) ... 
+     + Hx (li:ui-1,uj-1,lk:uk-1) + Hx (li+1:ui,uj-1,lk:uk-1));
+    
+    tjxyp(1,:,1,:) = 0.25*(Hz(li:ui-1,uj,lk:uk-1)+Hz(li:ui-1,uj,lk+1:uk) ... 
+     + Hz (li:ui-1,uj-1,lk:uk-1) + Hz (li:ui-1,uj-1,lk+1:uk));
+    
+    tjyzp(1,:,:,1) = 0.25*(Hx(li:ui-1,lj:uj-1,uk)+Hx(li+1:ui,lj:uj-1,uk) ... 
+     + Hx (li:ui-1,lj:uj-1,uk-1) + Hx (li+1:ui,lj:uj-1,uk-1));
+    
+    tjxzp(1,:,:,1) =-0.25*(Hy(li:ui-1,lj:uj-1,uk)+Hy(li:ui-1,lj+1:uj,uk) ... 
+     + Hy (li:ui-1,lj:uj-1,uk-1) + Hy (li:ui-1,lj+1:uj,uk-1));
+    
+    tmyxn(1,1,:,:) = -0.5 * (Ez(li,lj:uj-1,lk:uk-1)+Ez(li,lj+1:uj,lk:uk-1));
+    tmzxn(1,1,:,:) =  0.5 * (Ey(li,lj:uj-1,lk:uk-1)+Ey(li,lj:uj-1,lk+1:uk));
+    
+    tmxyn(1,:,1,:) =  0.5 * (Ez(li:ui-1,lj,lk:uk-1)+Ez(li+1:ui,lj,lk:uk-1));
+    tmzyn(1,:,1,:) = -0.5 * (Ex(li:ui-1,lj,lk:uk-1)+Ex(li:ui-1,lj,lk+1:uk));
+    
+    tmxzn(1,:,:,1) = -0.5 * (Ey(li:ui-1,lj:uj-1,lk)+Ey(li+1:ui,lj:uj-1,lk));
+    tmyzn(1,:,:,1) =  0.5 * (Ex(li:ui-1,lj:uj-1,lk)+Ex(li:ui-1,lj+1:uj,lk));
+    
+    tjyxn(1,1,:,:) = 0.25*(Hz(li,lj:uj-1,lk:uk-1)+Hz(li,lj:uj-1,lk+1:uk) ... 
+     + Hz (li-1,lj:uj-1,lk:uk-1) + Hz (li-1,lj:uj-1,lk+1:uk));
+    
+    tjzxn(1,1,:,:) =-0.25*(Hy(li,lj:uj-1,lk:uk-1)+Hy(li,lj+1:uj,lk:uk-1) ... 
+     + Hy (li-1,lj:uj-1,lk:uk-1) + Hy (li-1,lj+1:uj,lk:uk-1));
+    
+    tjzyn(1,:,1,:) = 0.25*(Hx(li:ui-1,lj,lk:uk-1)+Hx(li+1:ui,lj,lk:uk-1) ... 
+     + Hx (li:ui-1,lj-1,lk:uk-1) + Hx (li+1:ui,lj-1,lk:uk-1));
+    
+    tjxyn(1,:,1,:) =-0.25*(Hz(li:ui-1,lj,lk:uk-1)+Hz(li:ui-1,lj,lk+1:uk) ... 
+     + Hz (li:ui-1,lj-1,lk:uk-1) + Hz (li:ui-1,lj-1,lk+1:uk));
+    
+    tjyzn(1,:,:,1) =-0.25*(Hx(li:ui-1,lj:uj-1,lk)+Hx(li+1:ui,lj:uj-1,lk) ... 
+     + Hx (li:ui-1,lj:uj-1,lk-1)+Hx(li+1:ui,lj:uj-1,lk-1));
+    
+    tjxzn(1,:,:,1) = 0.25*(Hy(li:ui-1,lj:uj-1,lk)+Hy(li:ui-1,lj+1:uj,lk) ... 
+     + Hy (li:ui-1,lj:uj-1,lk-1) + Hy (li:ui-1,lj+1:uj,lk-1));
+    
+    % fourier transform
+    for mi=1:number_of_farfield_frequencies
+        exp_h = dt * exp(-j*farfield_w(mi)*(time_step-0.5)*dt);
+        cjxyp(mi,:,:,:) = cjxyp(mi,:,:,:) + exp_h * tjxyp(1,:,:,:); 
+        cjxzp(mi,:,:,:) = cjxzp(mi,:,:,:) + exp_h * tjxzp(1,:,:,:); 
+        cjyxp(mi,:,:,:) = cjyxp(mi,:,:,:) + exp_h * tjyxp(1,:,:,:); 
+        cjyzp(mi,:,:,:) = cjyzp(mi,:,:,:) + exp_h * tjyzp(1,:,:,:); 
+        cjzxp(mi,:,:,:) = cjzxp(mi,:,:,:) + exp_h * tjzxp(1,:,:,:); 
+        cjzyp(mi,:,:,:) = cjzyp(mi,:,:,:) + exp_h * tjzyp(1,:,:,:); 
+    
+        cjxyn(mi,:,:,:) = cjxyn(mi,:,:,:) + exp_h * tjxyn(1,:,:,:); 
+        cjxzn(mi,:,:,:) = cjxzn(mi,:,:,:) + exp_h * tjxzn(1,:,:,:); 
+        cjyxn(mi,:,:,:) = cjyxn(mi,:,:,:) + exp_h * tjyxn(1,:,:,:); 
+        cjyzn(mi,:,:,:) = cjyzn(mi,:,:,:) + exp_h * tjyzn(1,:,:,:); 
+        cjzxn(mi,:,:,:) = cjzxn(mi,:,:,:) + exp_h * tjzxn(1,:,:,:); 
+        cjzyn(mi,:,:,:) = cjzyn(mi,:,:,:) + exp_h * tjzyn(1,:,:,:); 
+    
+        exp_e = dt * exp(-j*farfield_w(mi)*time_step*dt);
+        
+        cmxyp(mi,:,:,:) = cmxyp(mi,:,:,:) + exp_e * tmxyp(1,:,:,:); 
+        cmxzp(mi,:,:,:) = cmxzp(mi,:,:,:) + exp_e * tmxzp(1,:,:,:); 
+        cmyxp(mi,:,:,:) = cmyxp(mi,:,:,:) + exp_e * tmyxp(1,:,:,:); 
+        cmyzp(mi,:,:,:) = cmyzp(mi,:,:,:) + exp_e * tmyzp(1,:,:,:); 
+        cmzxp(mi,:,:,:) = cmzxp(mi,:,:,:) + exp_e * tmzxp(1,:,:,:); 
+        cmzyp(mi,:,:,:) = cmzyp(mi,:,:,:) + exp_e * tmzyp(1,:,:,:); 
+    
+        cmxyn(mi,:,:,:) = cmxyn(mi,:,:,:) + exp_e * tmxyn(1,:,:,:); 
+        cmxzn(mi,:,:,:) = cmxzn(mi,:,:,:) + exp_e * tmxzn(1,:,:,:); 
+        cmyxn(mi,:,:,:) = cmyxn(mi,:,:,:) + exp_e * tmyxn(1,:,:,:); 
+        cmyzn(mi,:,:,:) = cmyzn(mi,:,:,:) + exp_e * tmyzn(1,:,:,:); 
+        cmzxn(mi,:,:,:) = cmzxn(mi,:,:,:) + exp_e * tmzxn(1,:,:,:); 
+        cmzyn(mi,:,:,:) = cmzyn(mi,:,:,:) + exp_e * tmzyn(1,:,:,:); 
+    end 
+
+  % CH9 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % display_sampled_parameters;
+  
+  % displaying sampled parameters
+  
+
+
+ 
+end
+
+end_time = cputime;
+total_time_in_minutes = (end_time - start_time)/60;
+disp(['Total simulation time is ' ...
+    num2str(total_time_in_minutes) ' minutes.']);
+
+% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;% run_fdtd_time_marching_loop;
+
+%post_process_and_display_results;
+disp('displaying simulation results');
+disp('plotting the transient parameters');
+
+% figures for sampled electric fields
+for ind=1:number_of_sampled_electric_fields
+    if sampled_electric_fields(ind).display_plot == false
+       % sampled_electric_fields(ind).figure_number = figure;
+        %xlabel('time (ns)','fontsize',12);
+        %ylabel('(volt/meter)','fontsize',12);
+        %title(['sampled electric field [' ...
+         %   num2str(ind) ']'],'fontsize',12);
+        %grid on; hold on;
+    else
+        %figure(sampled_electric_fields(ind).figure_number);
+        %delete(sampled_electric_fields(ind).plot_handle);
+    end
+    sampled_time = ...
+        sampled_electric_fields(ind).time(1:time_step)*1e9;
+    sampled_value = ...
+        sampled_electric_fields(ind).sampled_value(1:time_step);
+   % plot(sampled_time, sampled_value(1:time_step),'b-', ...
+    %    'linewidth',1.5);
+    %drawnow;
+end
+
+% figures for sampled magnetic fields
+for ind=1:number_of_sampled_magnetic_fields
+    if sampled_magnetic_fields(ind).display_plot == false
+       % sampled_magnetic_fields(ind).figure_number = figure;
+       % xlabel('time (ns)','fontsize',12);
+       % ylabel('(ampere/meter)','fontsize',12);
+       % title(['sampled magnetic field [' num2str(ind) ']'], ...
+       %     'fontsize',12);
+       % grid on; hold on;
+    else
+       % figure(sampled_magnetic_fields(ind).figure_number);
+       % delete(sampled_magnetic_fields(ind).plot_handle);
+    end
+    sampled_time = ...
+        sampled_magnetic_fields(ind).time(1:time_step)*1e9;
+    sampled_value = ...
+        sampled_magnetic_fields(ind).sampled_value(1:time_step);
+   % plot(sampled_time, sampled_value(1:time_step),'b-', ...
+    %    'linewidth',1.5);
+    %drawnow;
+end
+
+% figures for sampled voltages
+for ind=1:number_of_sampled_voltages
+    if sampled_voltages(ind).display_plot == false
+       % sampled_voltages(ind).figure_number = figure;
+       % xlabel('time (ns)','fontsize',12);
+       % ylabel('(volt)','fontsize',12);
+       % title(['sampled voltage [' num2str(ind) ']'], ...
+        %    'fontsize',12);
+        %grid on; hold on;
+    else
+       % figure(sampled_voltages(ind).figure_number);
+       % delete(sampled_voltages(ind).plot_handle);
+    end
+    sampled_time = ...
+        sampled_voltages(ind).time(1:time_step)*1e9;
+    sampled_value = ...
+        sampled_voltages(ind).sampled_value(1:time_step);
+%     plot(sampled_time, sampled_value(1:time_step),'b-',...
+%         'linewidth',1.5);
+    %drawnow;
+end
+
+% figures for sampled currents
+for ind=1:number_of_sampled_currents
+    if sampled_currents(ind).display_plot == false
+       % sampled_currents(ind).figure_number = figure;
+        %xlabel('time (ns)','fontsize',12);
+        %ylabel('(ampere)','fontsize',12);
+        %title(['sampled current [' num2str(ind) ']'], ...
+         %   'fontsize',12);
+        %grid on; hold on;
+    else
+        %figure(sampled_currents(ind).figure_number);
+        %delete(sampled_currents(ind).plot_handle);
+    end
+    sampled_time = ...
+        sampled_currents(ind).time(1:time_step)*1e9;
+    sampled_value = ...
+        sampled_currents(ind).sampled_value(1:time_step);
+   % plot(sampled_time, sampled_value(1:time_step),'b-', ...
+    %    'linewidth',1.5);
+    %drawnow;
+end
+disp('generating frequency domain outputs');
+
+frequency_array = frequency_domain.frequencies;
+
+% sampled electric fields in frequency domain
+for ind=1:number_of_sampled_electric_fields
+    x = sampled_electric_fields(ind).sampled_value;
+    time_shift = 0;
+    [X] = time_to_frequency_domain(x, dt, frequency_array, time_shift);
+    sampled_electric_fields(ind).frequency_domain_value = X;
+    sampled_electric_fields(ind).frequencies = frequency_array;
+end
+
+% sampled magnetic fields in frequency domain
+for ind=1:number_of_sampled_magnetic_fields
+    x = sampled_magnetic_fields(ind).sampled_value;
+    time_shift = -dt/2;
+    [X] = time_to_frequency_domain(x, dt, frequency_array, time_shift);
+    sampled_magnetic_fields(ind).frequency_domain_value = X;
+    sampled_magnetic_fields(ind).frequencies = frequency_array;
+end
+
+% sampled voltages in frequency domain
+for ind=1:number_of_sampled_voltages
+    x = sampled_voltages(ind).sampled_value;
+    time_shift = 0;
+    [X] = time_to_frequency_domain(x, dt, frequency_array, time_shift);
+    sampled_voltages(ind).frequency_domain_value = X;
+    sampled_voltages(ind).frequencies = frequency_array;
+end
+
+% sampled currents in frequency domain
+for ind=1:number_of_sampled_currents
+    x = sampled_currents(ind).sampled_value;
+    time_shift = -dt/2;
+    [X] = time_to_frequency_domain(x, dt, frequency_array, time_shift);
+    sampled_currents(ind).frequency_domain_value = X;
+    sampled_currents(ind).frequencies = frequency_array;
+end
+
+% voltage sources in frequency domain
+for ind=1:number_of_voltage_sources
+    x = voltage_sources(ind).waveform;
+    time_shift = 0;
+    [X] = time_to_frequency_domain(x, dt, frequency_array, time_shift);
+    voltage_sources(ind).frequency_domain_value = X;
+    voltage_sources(ind).frequencies = frequency_array;
+end
+
+% current sources in frequency domain
+for ind=1:number_of_current_sources
+    x = current_sources(ind).waveform;
+    time_shift = 0;
+    [X] = time_to_frequency_domain(x, dt, frequency_array, time_shift);
+    current_sources(ind).frequency_domain_value = X;
+    current_sources(ind).frequencies = frequency_array;
+end
+
+% calculation of S-parameters
+% calculate incident and reflected power waves
+for ind=1:number_of_ports
+    svi = ports(ind).sampled_voltage_index;
+    sci = ports(ind).sampled_current_index;
+    Z = ports(ind).impedance;
+    V = sampled_voltages(svi).frequency_domain_value;
+    I = sampled_currents(sci).frequency_domain_value;
+    ports(ind).a = 0.5*(V+Z.*I)./sqrt(real(Z));
+    ports(ind).b = 0.5*(V-conj(Z).*I)./sqrt(real(Z));
+    ports(ind).frequencies = frequency_array;
+end
+
+% calculate the S-parameters
+for ind=1:number_of_ports
+    if ports(ind).is_source_port == true
+        for oind=1:number_of_ports
+            ports(ind).S(oind).values = ports(oind).b ./ ports(ind).a;
+        end
+    end
+end
+
+
+disp('plotting the frequency domain parameters');
+
+
+% figures for S-parameters
+for ind=1:number_of_ports
+    if ports(ind).is_source_port == true
+        frequencies = ports(ind).frequencies*1e-9;
+        for oind=1:number_of_ports
+            S = ports(ind).S(oind).values;
+            Sdb = 20 * log10(abs(S));
+            Sphase = angle(S)*180/pi;
+            figure;
+            subplot(2,1,1);
+            plot(frequencies, Sdb,'b-','linewidth',1.5);
+            title(['S' num2str(oind) num2str(ind)],'fontsize',12);
+            xlabel('frequency (GHz)','fontsize',12);
+            ylabel('magnitude (dB)','fontsize',12);
+            grid on;
+            subplot(2,1,2);
+            plot(frequencies, Sphase,'r-','linewidth',1.5);
+            xlabel('frequency (GHz)','fontsize',12);
+            ylabel('phase (degrees)','fontsize',12);
+            grid on;
+            drawnow;
+        end
+    end
+end
+
+% CH9 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% calculate_and_display_farfields
+
+% This file calls the routines necessary for calculating 
+% farfield patterns in xy, xz, and yz plane cuts, and displays them. 
+% The display can be modified as desired.  
+% You will find the instructions the formats for
+% radiation pattern plots can be set by the user.
+
+if number_of_farfield_frequencies == 0
+    return;
+end
+
+% calculate_radiated_power;
+
+% Calculate total radiated power
+radiated_power = zeros(number_of_farfield_frequencies,1);
+
+for mi=1:number_of_farfield_frequencies
+    powr = 0;
+    powr = dx*dy* sum(sum(sum(cmyzp(mi,:,:,:).* ...
+        conj(cjxzp(mi,:,:,:)) - cmxzp(mi,:,:,:) ...
+        .* conj(cjyzp(mi,:,:,:)))));
+    powr = powr - dx*dy* sum(sum(sum(cmyzn(mi,:,:,:) ...
+        .* conj(cjxzn(mi,:,:,:)) - cmxzn(mi,:,:,:) ...
+        .* conj(cjyzn(mi,:,:,:)))));
+    powr = powr + dx*dz* sum(sum(sum(cmxyp(mi,:,:,:) ...
+        .* conj(cjzyp(mi,:,:,:)) - cmzyp(mi,:,:,:) ...
+        .* conj(cjxyp(mi,:,:,:)))));
+    powr = powr - dx*dz* sum(sum(sum(cmxyn(mi,:,:,:) ...
+        .* conj(cjzyn(mi,:,:,:)) - cmzyn(mi,:,:,:) ...
+        .* conj(cjxyn(mi,:,:,:)))));
+    powr = powr + dy*dz* sum(sum(sum(cmzxp(mi,:,:,:) ...
+        .* conj(cjyxp(mi,:,:,:)) - cmyxp(mi,:,:,:) ...
+        .* conj(cjzxp(mi,:,:,:)))));
+    powr = powr - dy*dz* sum(sum(sum(cmzxn(mi,:,:,:) ...
+        .* conj(cjyxn(mi,:,:,:)) - cmyxn(mi,:,:,:) ...
+        .* conj(cjzxn(mi,:,:,:)))));
+    radiated_power(mi) = 0.5 * real(powr);
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+j = sqrt(-1);
+number_of_angles = 360;
+
+% parameters used by polar plotting functions
+step_size = 10;       % increment between the rings in the polar grid
+Nrings = 4;           % number of rings in the polar grid
+line_style1 = 'b-';   % line style for theta component
+line_style2 = 'r--';  % line style for phi component
+scale_type = 'dB';    % linear or dB
+plot_type = 'D';      % the calculated data is directivity
+
+% xy plane
+% ===============================================
+farfield_theta = zeros(number_of_angles, 1);
+farfield_phi   = zeros(number_of_angles, 1);
+farfield_theta = farfield_theta + pi/2;
+farfield_phi = (pi/180)*[-180:1:179].';
+const_theta = 90; % used for plot
+
+% calculate farfields
+% calculate_farfields_per_plane;
+
+if number_of_farfield_frequencies == 0
+    return;
+end
+c	  = 2.99792458e+8;   	% speed of light in free space
+mu_0  = 4 * pi * 1e-7;      % permeability of free space
+eps_0 = 1.0/(c*c*mu_0); 	% permittivity of free space
+eta_0 = sqrt(mu_0/eps_0);   % intrinsic impedance of free space
+
+exp_jk_rpr = zeros(number_of_angles,1);
+dx_sinth_cosphi = zeros(number_of_angles,1);
+dy_sinth_sinphi = zeros(number_of_angles,1);
+dz_costh = zeros(number_of_angles,1);
+dy_dz_costh_sinphi = zeros(number_of_angles,1);
+dy_dz_sinth = zeros(number_of_angles,1);
+dy_dz_cosphi = zeros(number_of_angles,1);
+dx_dz_costh_cosphi = zeros(number_of_angles,1);
+dx_dz_sinth = zeros(number_of_angles,1);
+dx_dz_sinphi = zeros(number_of_angles,1);
+dx_dy_costh_cosphi = zeros(number_of_angles,1);
+dx_dy_costh_sinphi = zeros(number_of_angles,1);
+dx_dy_sinphi = zeros(number_of_angles,1);
+dx_dy_cosphi = zeros(number_of_angles,1);
+farfield_dataTheta = ...
+    zeros(number_of_farfield_frequencies,number_of_angles);
+farfield_dataPhi = ...
+    zeros(number_of_farfield_frequencies,number_of_angles);
+
+dx_sinth_cosphi = dx*sin(farfield_theta).*cos(farfield_phi);
+dy_sinth_sinphi = dy*sin(farfield_theta).*sin(farfield_phi);
+dz_costh = dz*cos(farfield_theta);
+dy_dz_costh_sinphi = dy*dz*cos(farfield_theta).*sin(farfield_phi);
+dy_dz_sinth = dy*dz*sin(farfield_theta);
+dy_dz_cosphi = dy*dz*cos(farfield_phi);
+dx_dz_costh_cosphi = dx*dz*cos(farfield_theta).*cos(farfield_phi);
+dx_dz_sinth = dx*dz*sin(farfield_theta);
+dx_dz_sinphi = dx*dz*sin(farfield_phi);
+dx_dy_costh_cosphi = dx*dy*cos(farfield_theta).*cos(farfield_phi);
+dx_dy_costh_sinphi = dx*dy*cos(farfield_theta).*sin(farfield_phi);
+dx_dy_sinphi = dx*dy*sin(farfield_phi);
+dx_dy_cosphi = dx*dy*cos(farfield_phi);
+ci = 0.5*(ui+li);
+cj = 0.5*(uj+lj);
+ck = 0.5*(uk+lk);
+
+% calculate directivity
+for mi=1:number_of_farfield_frequencies
+    disp(['Calculating directivity for ' , ...
+        num2str(farfield.frequencies(mi)) ' Hz']);
+    k = 2*pi*farfield.frequencies(mi)*(mu_0*eps_0)^0.5;
+
+    Ntheta = zeros(number_of_angles,1);
+    Ltheta = zeros(number_of_angles,1);
+    Nphi = zeros(number_of_angles,1);
+    Lphi = zeros(number_of_angles,1);
+    rpr = zeros(number_of_angles,1);
+
+    for nj = lj:uj-1
+        for nk =lk:uk-1
+        % for +ax direction
+
+        rpr = (ui - ci)*dx_sinth_cosphi ...
+            + (nj-cj+0.5)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+        Ntheta = Ntheta ...
+            + (cjyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cjzxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cmzxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (cjyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (cmyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+
+        % for -ax direction
+        rpr = (li - ci)*dx_sinth_cosphi ...
+            + (nj-cj+0.5)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+        Ntheta = Ntheta ...
+            + (cjyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cjzxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cmzxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (cjyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (cmyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        end
+    end
+    for ni =li:ui-1
+        for nk =lk:uk-1
+        % for +ay direction
+
+        rpr = (ni - ci + 0.5)*dx_sinth_cosphi ...
+            + (uj-cj)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cjzyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cmzyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (-cjxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (-cmxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+
+        % for -ay direction
+        rpr = (ni - ci + 0.5)*dx_sinth_cosphi ...
+            + (lj-cj)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cjzyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cmzyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (-cjxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (-cmxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        end
+    end
+
+    for ni =li:ui-1
+        for nj =lj:uj-1
+        % for +az direction
+
+        rpr = (ni-ci+0.5)*dx_sinth_cosphi ...
+            + (nj - cj + 0.5)*dy_sinth_sinphi ...
+            + (uk-ck)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cjyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cmyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Nphi = Nphi + (-cjxzp(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cjyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        Lphi = Lphi + (-cmxzp(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cmyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+
+        % for -az direction
+
+        rpr = (ni-ci+0.5)*dx_sinth_cosphi ...
+            + (nj - cj + 0.5)*dy_sinth_sinphi ...
+            + (lk-ck)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cjyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi)...
+            .*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cmyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Nphi = Nphi + (-cjxzn(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cjyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        Lphi = Lphi + (-cmxzn(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cmyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        end
+    end
+    % calculate directivity
+    farfield_dataTheta(mi,:)=(k^2./(8*pi*eta_0*radiated_power(mi))) ...
+        .* (abs(Lphi+eta_0*Ntheta).^2);
+    farfield_dataPhi(mi,:)  =(k^2./(8*pi*eta_0*radiated_power(mi))) ...
+        .* (abs(Ltheta-eta_0*Nphi).^2);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+
+% plotting the farfield data
+for mi=1:number_of_farfield_frequencies 
+ f = figure;
+ pat1 = farfield_dataTheta(mi,:).';
+ pat2 = farfield_dataPhi(mi,:).';
+
+ % if scale_type is db use these, otherwise comment these two lines
+ pat1 = 10*log10(pat1); 
+ pat2 = 10*log10(pat2);
+
+ max_val = max(max([pat1 pat2]));
+ max_val = step_size * ceil(max_val/step_size);
+
+ legend_str1 = [plot_type '_{\theta}, f=' ...
+     num2str(farfield.frequencies(mi)*1e-9) ' GHz'];
+ legend_str2 = [plot_type '_{\phi}, f=' ...
+     num2str(farfield.frequencies(mi)*1e-9) ' GHz'];
+
+ polar_plot_constant_theta(farfield_phi,pat1,pat2,max_val, ...
+        step_size, Nrings,line_style1,line_style2,const_theta, ...
+        legend_str1,legend_str2,scale_type);
+end
+
+% xz plane
+% ===============================================
+farfield_theta = zeros(number_of_angles, 1);
+farfield_phi   = zeros(number_of_angles, 1);
+farfield_theta = (pi/180)*[-180:1:179].';
+const_phi = 0; % used for plot
+
+% calculate farfields
+% calculate_farfields_per_plane;
+
+if number_of_farfield_frequencies == 0
+    return;
+end
+c	  = 2.99792458e+8;   	% speed of light in free space
+mu_0  = 4 * pi * 1e-7;      % permeability of free space
+eps_0 = 1.0/(c*c*mu_0); 	% permittivity of free space
+eta_0 = sqrt(mu_0/eps_0);   % intrinsic impedance of free space
+
+exp_jk_rpr = zeros(number_of_angles,1);
+dx_sinth_cosphi = zeros(number_of_angles,1);
+dy_sinth_sinphi = zeros(number_of_angles,1);
+dz_costh = zeros(number_of_angles,1);
+dy_dz_costh_sinphi = zeros(number_of_angles,1);
+dy_dz_sinth = zeros(number_of_angles,1);
+dy_dz_cosphi = zeros(number_of_angles,1);
+dx_dz_costh_cosphi = zeros(number_of_angles,1);
+dx_dz_sinth = zeros(number_of_angles,1);
+dx_dz_sinphi = zeros(number_of_angles,1);
+dx_dy_costh_cosphi = zeros(number_of_angles,1);
+dx_dy_costh_sinphi = zeros(number_of_angles,1);
+dx_dy_sinphi = zeros(number_of_angles,1);
+dx_dy_cosphi = zeros(number_of_angles,1);
+farfield_dataTheta = ...
+    zeros(number_of_farfield_frequencies,number_of_angles);
+farfield_dataPhi = ...
+    zeros(number_of_farfield_frequencies,number_of_angles);
+
+dx_sinth_cosphi = dx*sin(farfield_theta).*cos(farfield_phi);
+dy_sinth_sinphi = dy*sin(farfield_theta).*sin(farfield_phi);
+dz_costh = dz*cos(farfield_theta);
+dy_dz_costh_sinphi = dy*dz*cos(farfield_theta).*sin(farfield_phi);
+dy_dz_sinth = dy*dz*sin(farfield_theta);
+dy_dz_cosphi = dy*dz*cos(farfield_phi);
+dx_dz_costh_cosphi = dx*dz*cos(farfield_theta).*cos(farfield_phi);
+dx_dz_sinth = dx*dz*sin(farfield_theta);
+dx_dz_sinphi = dx*dz*sin(farfield_phi);
+dx_dy_costh_cosphi = dx*dy*cos(farfield_theta).*cos(farfield_phi);
+dx_dy_costh_sinphi = dx*dy*cos(farfield_theta).*sin(farfield_phi);
+dx_dy_sinphi = dx*dy*sin(farfield_phi);
+dx_dy_cosphi = dx*dy*cos(farfield_phi);
+ci = 0.5*(ui+li);
+cj = 0.5*(uj+lj);
+ck = 0.5*(uk+lk);
+
+% calculate directivity
+for mi=1:number_of_farfield_frequencies
+    disp(['Calculating directivity for ' , ...
+        num2str(farfield.frequencies(mi)) ' Hz']);
+    k = 2*pi*farfield.frequencies(mi)*(mu_0*eps_0)^0.5;
+
+    Ntheta = zeros(number_of_angles,1);
+    Ltheta = zeros(number_of_angles,1);
+    Nphi = zeros(number_of_angles,1);
+    Lphi = zeros(number_of_angles,1);
+    rpr = zeros(number_of_angles,1);
+
+    for nj = lj:uj-1
+        for nk =lk:uk-1
+        % for +ax direction
+
+        rpr = (ui - ci)*dx_sinth_cosphi ...
+            + (nj-cj+0.5)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+        Ntheta = Ntheta ...
+            + (cjyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cjzxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cmzxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (cjyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (cmyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+
+        % for -ax direction
+        rpr = (li - ci)*dx_sinth_cosphi ...
+            + (nj-cj+0.5)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+        Ntheta = Ntheta ...
+            + (cjyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cjzxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cmzxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (cjyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (cmyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        end
+    end
+    for ni =li:ui-1
+        for nk =lk:uk-1
+        % for +ay direction
+
+        rpr = (ni - ci + 0.5)*dx_sinth_cosphi ...
+            + (uj-cj)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cjzyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cmzyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (-cjxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (-cmxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+
+        % for -ay direction
+        rpr = (ni - ci + 0.5)*dx_sinth_cosphi ...
+            + (lj-cj)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cjzyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cmzyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (-cjxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (-cmxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        end
+    end
+
+    for ni =li:ui-1
+        for nj =lj:uj-1
+        % for +az direction
+
+        rpr = (ni-ci+0.5)*dx_sinth_cosphi ...
+            + (nj - cj + 0.5)*dy_sinth_sinphi ...
+            + (uk-ck)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cjyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cmyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Nphi = Nphi + (-cjxzp(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cjyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        Lphi = Lphi + (-cmxzp(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cmyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+
+        % for -az direction
+
+        rpr = (ni-ci+0.5)*dx_sinth_cosphi ...
+            + (nj - cj + 0.5)*dy_sinth_sinphi ...
+            + (lk-ck)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cjyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi)...
+            .*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cmyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Nphi = Nphi + (-cjxzn(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cjyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        Lphi = Lphi + (-cmxzn(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cmyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        end
+    end
+    % calculate directivity
+    farfield_dataTheta(mi,:)=(k^2./(8*pi*eta_0*radiated_power(mi))) ...
+        .* (abs(Lphi+eta_0*Ntheta).^2);
+    farfield_dataPhi(mi,:)  =(k^2./(8*pi*eta_0*radiated_power(mi))) ...
+        .* (abs(Ltheta-eta_0*Nphi).^2);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% plotting the farfield data
+for mi=1:number_of_farfield_frequencies 
+ f = figure;
+ pat1 = farfield_dataTheta(mi,:).';
+ pat2 = farfield_dataPhi(mi,:).';
+
+% if scale_type is db use these, otherwise comment these two lines
+ pat1 = 10*log10(pat1); 
+ pat2 = 10*log10(pat2);
+
+ max_val = max(max([pat1 pat2]));
+ max_val = step_size * ceil(max_val/step_size);
+ 
+ legend_str1 = ...
+ [plot_type '_{\theta}, f=' ...
+ num2str(farfield.frequencies(mi)*1e-9) ' GHz'];
+ legend_str2 = ...
+ [plot_type '_{\phi}, f=' ...
+ num2str(farfield.frequencies(mi)*1e-9) ' GHz'];
+
+ polar_plot_constant_phi(farfield_theta,pat1,pat2,max_val, ...
+        step_size, Nrings,line_style1,line_style2,const_phi, ...
+        legend_str1,legend_str2,scale_type);
+end
+
+% yz plane
+% ===============================================
+farfield_theta = zeros(number_of_angles, 1);
+farfield_phi   = zeros(number_of_angles, 1);
+farfield_phi = farfield_phi + pi/2;
+farfield_theta = (pi/180)*[-180:1:179].';
+const_phi = 90; % used for plot
+
+% calculate farfields
+% calculate_farfields_per_plane;
+
+if number_of_farfield_frequencies == 0
+    return;
+end
+c	  = 2.99792458e+8;   	% speed of light in free space
+mu_0  = 4 * pi * 1e-7;      % permeability of free space
+eps_0 = 1.0/(c*c*mu_0); 	% permittivity of free space
+eta_0 = sqrt(mu_0/eps_0);   % intrinsic impedance of free space
+
+exp_jk_rpr = zeros(number_of_angles,1);
+dx_sinth_cosphi = zeros(number_of_angles,1);
+dy_sinth_sinphi = zeros(number_of_angles,1);
+dz_costh = zeros(number_of_angles,1);
+dy_dz_costh_sinphi = zeros(number_of_angles,1);
+dy_dz_sinth = zeros(number_of_angles,1);
+dy_dz_cosphi = zeros(number_of_angles,1);
+dx_dz_costh_cosphi = zeros(number_of_angles,1);
+dx_dz_sinth = zeros(number_of_angles,1);
+dx_dz_sinphi = zeros(number_of_angles,1);
+dx_dy_costh_cosphi = zeros(number_of_angles,1);
+dx_dy_costh_sinphi = zeros(number_of_angles,1);
+dx_dy_sinphi = zeros(number_of_angles,1);
+dx_dy_cosphi = zeros(number_of_angles,1);
+farfield_dataTheta = ...
+    zeros(number_of_farfield_frequencies,number_of_angles);
+farfield_dataPhi = ...
+    zeros(number_of_farfield_frequencies,number_of_angles);
+
+dx_sinth_cosphi = dx*sin(farfield_theta).*cos(farfield_phi);
+dy_sinth_sinphi = dy*sin(farfield_theta).*sin(farfield_phi);
+dz_costh = dz*cos(farfield_theta);
+dy_dz_costh_sinphi = dy*dz*cos(farfield_theta).*sin(farfield_phi);
+dy_dz_sinth = dy*dz*sin(farfield_theta);
+dy_dz_cosphi = dy*dz*cos(farfield_phi);
+dx_dz_costh_cosphi = dx*dz*cos(farfield_theta).*cos(farfield_phi);
+dx_dz_sinth = dx*dz*sin(farfield_theta);
+dx_dz_sinphi = dx*dz*sin(farfield_phi);
+dx_dy_costh_cosphi = dx*dy*cos(farfield_theta).*cos(farfield_phi);
+dx_dy_costh_sinphi = dx*dy*cos(farfield_theta).*sin(farfield_phi);
+dx_dy_sinphi = dx*dy*sin(farfield_phi);
+dx_dy_cosphi = dx*dy*cos(farfield_phi);
+ci = 0.5*(ui+li);
+cj = 0.5*(uj+lj);
+ck = 0.5*(uk+lk);
+
+% calculate directivity
+for mi=1:number_of_farfield_frequencies
+    disp(['Calculating directivity for ' , ...
+        num2str(farfield.frequencies(mi)) ' Hz']);
+    k = 2*pi*farfield.frequencies(mi)*(mu_0*eps_0)^0.5;
+
+    Ntheta = zeros(number_of_angles,1);
+    Ltheta = zeros(number_of_angles,1);
+    Nphi = zeros(number_of_angles,1);
+    Lphi = zeros(number_of_angles,1);
+    rpr = zeros(number_of_angles,1);
+
+    for nj = lj:uj-1
+        for nk =lk:uk-1
+        % for +ax direction
+
+        rpr = (ui - ci)*dx_sinth_cosphi ...
+            + (nj-cj+0.5)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+        Ntheta = Ntheta ...
+            + (cjyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cjzxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cmzxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (cjyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (cmyxp(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+
+        % for -ax direction
+        rpr = (li - ci)*dx_sinth_cosphi ...
+            + (nj-cj+0.5)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+        Ntheta = Ntheta ...
+            + (cjyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cjzxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_costh_sinphi ...
+            - cmzxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (cjyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (cmyxn(mi,1,nj-lj+1,nk-lk+1).*dy_dz_cosphi).*exp_jk_rpr;
+        end
+    end
+    for ni =li:ui-1
+        for nk =lk:uk-1
+        % for +ay direction
+
+        rpr = (ni - ci + 0.5)*dx_sinth_cosphi ...
+            + (uj-cj)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cjzyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cmzyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (-cjxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (-cmxyp(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+
+        % for -ay direction
+        rpr = (ni - ci + 0.5)*dx_sinth_cosphi ...
+            + (lj-cj)*dy_sinth_sinphi ...
+            + (nk-ck+0.5)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cjzyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_costh_cosphi ...
+            - cmzyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinth).*exp_jk_rpr;
+        Nphi = Nphi ...
+            + (-cjxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        Lphi = Lphi ...
+            + (-cmxyn(mi,ni-li+1,1,nk-lk+1).*dx_dz_sinphi).*exp_jk_rpr;
+        end
+    end
+
+    for ni =li:ui-1
+        for nj =lj:uj-1
+        % for +az direction
+
+        rpr = (ni-ci+0.5)*dx_sinth_cosphi ...
+            + (nj - cj + 0.5)*dy_sinth_sinphi ...
+            + (uk-ck)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cjyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cmyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Nphi = Nphi + (-cjxzp(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cjyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        Lphi = Lphi + (-cmxzp(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cmyzp(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+
+        % for -az direction
+
+        rpr = (ni-ci+0.5)*dx_sinth_cosphi ...
+            + (nj - cj + 0.5)*dy_sinth_sinphi ...
+            + (lk-ck)*dz_costh;
+        exp_jk_rpr = exp(j*k*rpr);
+
+        Ntheta = Ntheta ...
+            + (cjxzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cjyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi)...
+            .*exp_jk_rpr;
+        Ltheta = Ltheta ...
+            + (cmxzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_cosphi ...
+            + cmyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_costh_sinphi) ...
+            .*exp_jk_rpr;
+        Nphi = Nphi + (-cjxzn(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cjyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        Lphi = Lphi + (-cmxzn(mi,ni-li+1,nj-lj+1,1) ...
+            .*dx_dy_sinphi+cmyzn(mi,ni-li+1,nj-lj+1,1).*dx_dy_cosphi)...
+            .*exp_jk_rpr;
+        end
+    end
+    % calculate directivity
+    farfield_dataTheta(mi,:)=(k^2./(8*pi*eta_0*radiated_power(mi))) ...
+        .* (abs(Lphi+eta_0*Ntheta).^2);
+    farfield_dataPhi(mi,:)  =(k^2./(8*pi*eta_0*radiated_power(mi))) ...
+        .* (abs(Ltheta-eta_0*Nphi).^2);
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% plotting the farfield data
+for mi=1:number_of_farfield_frequencies 
+ f = figure;
+ pat1 = farfield_dataTheta(mi,:).';
+ pat2 = farfield_dataPhi(mi,:).';
+
+% if scale_type is db use these, otherwise comment these two lines
+ pat1 = 10*log10(pat1); 
+ pat2 = 10*log10(pat2);
+
+ max_val = max(max([pat1 pat2]));
+ max_val = step_size * ceil(max_val/step_size);
+ 
+ legend_str1 = ...
+ [plot_type '_{\theta}, f=' ...
+ num2str(farfield.frequencies(mi)*1e-9) ' GHz'];
+ legend_str2 = ...
+ [plot_type '_{\phi}, f=' ...
+ num2str(farfield.frequencies(mi)*1e-9) ' GHz'];
+
+ polar_plot_constant_phi(farfield_theta,pat1,pat2,max_val, ...
+        step_size, Nrings,line_style1,line_style2,const_phi, ...
+        legend_str1,legend_str2,scale_type);
+end
+
+% CH9 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%end   % if run_simulation

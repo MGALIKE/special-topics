@@ -1,0 +1,20 @@
+{
+  "name": "fdtd-ifa-solver",
+  "version": "1.0.0",
+  "description": "FDTD Inverted-F Antenna simulator ported from MATLAB",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "asc assembly/fdtd_kernels.ts --outFile build/fdtd_kernels.wasm --optimize --optimizeLevel 3 --shrinkLevel 0 --enable simd --enable threads --importMemory --initialMemory 1 --maximumMemory 65536 --sharedMemory --target release",
+    "build:debug": "asc assembly/fdtd_kernels.ts --outFile build/fdtd_kernels.wasm --debug --enable simd --target debug",
+    "start": "node --max-old-space-size=1024 src/index.js",
+    "serve": "node --max-old-space-size=1024 src/server.js",
+    "validate": "node --max-old-space-size=1024 src/index.js --validate"
+  },
+  "dependencies": {
+    "@assemblyscript/loader": "^0.28.12"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.27.0"
+  }
+}

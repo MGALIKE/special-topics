@@ -1,0 +1,26 @@
+
+🔬 FDTD Simulation Server running at http://localhost:4000
+   POST /simulate  — start simulation
+   GET  /stream    — SSE real-time stream
+   GET  /status    — current state
+   GET  /results   — final results
+
+Building simulation problem...
+Grid: 39 x 136 x 136
+Running Multithreaded WASM SIMD Cluster with SSE streaming...
+Worker 0 entering updateE
+Worker 11 entering updateE
+Worker 14 entering updateE
+Worker 9 entering updateE
+Worker 13 entering updateE
+Worker 8 entering updateE
+Worker 7 entering updateE
+Worker 1 entering updateE
+Worker 12 entering updateE
+Worker 3 entering updateE
+Worker 5 entering updateE
+Worker 2 entering updateE
+Worker 6 entering updateE
+Worker 4 entering updateE
+Worker 10 entering updateE
+Step 500/7000 (7.1%) — 8.7s
