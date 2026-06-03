@@ -1,0 +1,179 @@
+"use client";
+
+import { useMemo } from "react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  Legend,
+} from "recharts";
+import type { SParamData } from "@/lib/demoData";
+
+interface SParamChartProps {
+  data: SParamData;
+}
+
+export default function SParamChart({ data }: SParamChartProps) {
+  const chartData = useMemo(() => {
+    const step = Math.max(1, Math.floor(data.frequencies_GHz.length / 300));
+    const result = [];
+    for (let i = 0; i < data.frequencies_GHz.length; i += step) {
+      result.push({
+        freq: data.frequencies_GHz[i],
+        mag: data.magnitude_dB[i],
+        phase: data.phase_deg[i],
+      });
+    }
+    return result;
+  }, [data]);
+
+  const minMag = useMemo(() => {
+    const validMags = chartData
+      .map((d) => d.mag)
+      .filter((v) => v !== null && isFinite(v as number)) as number[];
+    return validMags.length > 0 ? Math.min(...validMags) : -25;
+  }, [chartData]);
+
+  return (
+    <div className="chart-container">
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+          <defs>
+            <linearGradient id="magGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#1a2744" />
+          <XAxis
+            dataKey="freq"
+            stroke="#4a5568"
+            tick={{ fill: "#718096", fontSize: 11 }}
+            label={{
+              value: "Frequency (GHz)",
+              position: "insideBottom",
+              offset: -2,
+              fill: "#718096",
+              fontSize: 11,
+            }}
+          />
+          <YAxis
+            yAxisId="left"
+            stroke="#4a5568"
+            tick={{ fill: "#00d4ff", fontSize: 11 }}
+            domain={[Math.floor(minMag / 5) * 5, 0]}
+            label={{
+              value: "|S11| (dB)",
+              angle: -90,
+              position: "insideLeft",
+              fill: "#00d4ff",
+              fontSize: 11,
+            }}
+          />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            stroke="#4a5568"
+            tick={{ fill: "#ff6b35", fontSize: 11 }}
+            domain={[-180, 180]}
+            label={{
+              value: "Phase (°)",
+              angle: 90,
+              position: "insideRight",
+              fill: "#ff6b35",
+              fontSize: 11,
+            }}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "rgba(10, 22, 40, 0.95)",
+              border: "1px solid #1a2744",
+              borderRadius: "8px",
+              color: "#e2e8f0",
+              fontSize: 12,
+            }}
+            formatter={(value: number, name: string) => [
+              value?.toFixed(2),
+              name === "mag" ? "|S11| (dB)" : "Phase (°)",
+            ]}
+            labelFormatter={(label: number) => `${label.toFixed(2)} GHz`}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: 11, color: "#718096" }}
+            formatter={(value: string) =>
+              value === "mag" ? "|S11| Magnitude" : "∠S11 Phase"
+            }
+          />
+          <ReferenceLine
+            yAxisId="left"
+            y={-10}
+            stroke="#ff6b35"
+            strokeDasharray="5 5"
+            strokeOpacity={0.5}
+            label={{
+              value: "-10 dB",
+              fill: "#ff6b35",
+              fontSize: 10,
+              position: "right",
+            }}
+          />
+          <ReferenceLine
+            x={2.4}
+            stroke="#00d4ff"
+            strokeDasharray="3 3"
+            strokeOpacity={0.4}
+            label={{
+              value: "2.4 GHz",
+              fill: "#00d4ff",
+              fontSize: 9,
+              position: "top",
+            }}
+          />
+          <ReferenceLine
+            x={5.8}
+            stroke="#00d4ff"
+            strokeDasharray="3 3"
+            strokeOpacity={0.4}
+            label={{
+              value: "5.8 GHz",
+              fill: "#00d4ff",
+              fontSize: 9,
+              position: "top",
+            }}
+          />
+          <Line
+            yAxisId="left"
+            type="monotone"
+            dataKey="mag"
+            stroke="#00d4ff"
+            strokeWidth={2}
+            dot={false}
+            filter="url(#glow)"
+          />
+          <Line
+            yAxisId="right"
+            type="monotone"
+            dataKey="phase"
+            stroke="#ff6b35"
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+            dot={false}
+            opacity={0.7}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
