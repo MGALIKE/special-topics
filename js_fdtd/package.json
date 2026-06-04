@@ -9,10 +9,14 @@
     "build:debug": "asc assembly/fdtd_kernels.ts --outFile build/fdtd_kernels.wasm --debug --enable simd --target debug",
     "start": "node --max-old-space-size=1024 src/index.js",
     "serve": "node --max-old-space-size=1024 src/server.js",
-    "validate": "node --max-old-space-size=1024 src/index.js --validate"
+    "validate": "node --max-old-space-size=1024 src/index.js --validate",
+    "build:cuda": "node-gyp configure build --directory=src/backends/cuda"
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.28.12"
+  },
+  "optionalDependencies": {
+    "webgpu": "^0.4.0"
   },
   "devDependencies": {
     "assemblyscript": "^0.27.0"

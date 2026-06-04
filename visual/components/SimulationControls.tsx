@@ -2,6 +2,10 @@
 
 import { motion } from "framer-motion";
 import type { SimStatus } from "@/lib/useSimulation";
+import type { BackendChoice } from "@/lib/backends";
+import type { ScenarioInfo } from "@/lib/scenarios";
+import BackendSelector from "@/components/BackendSelector";
+import ScenarioSelector from "@/components/ScenarioSelector";
 
 interface SimulationControlsProps {
   status: SimStatus;
@@ -11,6 +15,11 @@ interface SimulationControlsProps {
   percent: string;
   error: string | null;
   onStart: () => void;
+  backendChoice: BackendChoice;
+  onBackendChange: (choice: BackendChoice) => void;
+  scenarios: ScenarioInfo[];
+  scenario: string;
+  onScenarioChange: (name: string) => void;
 }
 
 const STATUS_LABELS: Record<SimStatus, string> = {
@@ -24,13 +33,13 @@ const STATUS_LABELS: Record<SimStatus, string> = {
 };
 
 const STATUS_COLORS: Record<SimStatus, string> = {
-  disconnected: "#ef4444",
-  idle: "#94a3b8",
-  initializing: "#fbbf24",
-  running: "#00d4ff",
-  postprocessing: "#a78bfa",
-  done: "#34d399",
-  error: "#ef4444",
+  disconnected: "#ff3b1f",
+  idle: "#6a6a6a",
+  initializing: "#f4f4f1",
+  running: "#ff3b1f",
+  postprocessing: "#f4f4f1",
+  done: "#f4f4f1",
+  error: "#ff3b1f",
 };
 
 export default function SimulationControls({
@@ -41,6 +50,11 @@ export default function SimulationControls({
   percent,
   error,
   onStart,
+  backendChoice,
+  onBackendChange,
+  scenarios,
+  scenario,
+  onScenarioChange,
 }: SimulationControlsProps) {
   const isRunning =
     status === "running" ||
@@ -55,6 +69,17 @@ export default function SimulationControls({
 
   return (
     <div className="sim-controls">
+      {/* Scenario (problem definition) selector */}
+      <ScenarioSelector
+        scenarios={scenarios}
+        value={scenario}
+        onChange={onScenarioChange}
+        disabled={isRunning}
+      />
+
+      {/* Compute-engine selector */}
+      <BackendSelector value={backendChoice} onChange={onBackendChange} />
+
       {/* Status indicator */}
       <div className="sim-status-row">
         <div className="sim-status-indicator">
@@ -84,9 +109,9 @@ export default function SimulationControls({
               Running...
             </>
           ) : status === "done" ? (
-            <>🔄 Re-run Simulation</>
+            <>Re-run Simulation</>
           ) : (
-            <>▶ Run Simulation</>
+            <>Run Simulation</>
           )}
         </motion.button>
       </div>
@@ -101,10 +126,7 @@ export default function SimulationControls({
               animate={{ width: `${percent}%` }}
               transition={{ duration: 0.3 }}
               style={{
-                background:
-                  status === "done"
-                    ? "linear-gradient(90deg, #34d399, #10b981)"
-                    : "linear-gradient(90deg, #00d4ff, #a78bfa)",
+                background: status === "done" ? "#f4f4f1" : "#ff3b1f",
               }}
             />
           </div>

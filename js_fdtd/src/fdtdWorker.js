@@ -81,13 +81,19 @@ parentPort.once('message', async (msg) => {
       Atomics.notify(mainSignal, 0); // Wake main thread to handle sources/capture
     }
 
-    Atomics.wait(mainSignal, 0, 1);
+    // Wait until the main thread finishes its H-phase captures (it stores 2).
+    // Loop on the ACTUAL current value: if we arrive here before worker0 has
+    // stored 1, the value is still 0 (or already 1) — waiting on a hard-coded
+    // expected value would fall straight through ("not-equal") and desync the
+    // barrier generations. Looping until the value reaches 2 is race-free.
+    for (let v = Atomics.load(mainSignal, 0); v !== 2; v = Atomics.load(mainSignal, 0)) {
+      Atomics.wait(mainSignal, 0, v);
+    }
     syncBarrier(barrierState, numWorkers, 1);
 
     // ────────────────────────────────────────────────────────────────────────────
     // 2. WebAssembly Hardware SIMD E Bulk Update
     // ────────────────────────────────────────────────────────────────────────────
-    if (ts === 50) console.log(`Worker ${workerId} entering updateE`);
     wasm.updateE(
       nx, ny, nz, nxp1, nyp1, nzp1,
       p_nx.start, p_nx.end,
@@ -98,8 +104,6 @@ parentPort.once('message', async (msg) => {
       pointers.Ceye, pointers.Ceyhx, pointers.Ceyhz,
       pointers.Ceze, pointers.Cezhy, pointers.Cezhx
     );
-    if (ts === 50) console.log(`Worker ${workerId} finished updateE`);
-
     syncBarrier(barrierState, numWorkers, 2);
 
     // ────────────────────────────────────────────────────────────────────────────
@@ -111,9 +115,11 @@ parentPort.once('message', async (msg) => {
       Atomics.notify(mainSignal, 0);
     }
 
-    if (ts === 50) console.log(`Worker ${workerId} waiting for mainSignal 3`);
-    Atomics.wait(mainSignal, 0, 3);
-    if (ts === 50) console.log(`Worker ${workerId} hit barrier 3`);
+    // Wait until the main thread finishes its E-phase work (it stores 0 for the
+    // next step). Same race-free loop as the H phase above.
+    for (let v = Atomics.load(mainSignal, 0); v !== 0; v = Atomics.load(mainSignal, 0)) {
+      Atomics.wait(mainSignal, 0, v);
+    }
     syncBarrier(barrierState, numWorkers, 3);
 
   }

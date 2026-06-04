@@ -12,19 +12,15 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { buildGrid } from './grid.js';
-import { buildMaterialGrid, computeMaterialComponents, applyPECPlates } from './materials.js';
-import { computeGeneralCoefficients, applyLumpedElementCoefficients } from './coefficients.js';
-import { initCPML } from './cpml.js';
-import { initWaveforms, initVoltageSources } from './sources.js';
-import {
-  initSampledElectricFields, initSampledMagneticFields,
-  initSampledVoltages, initSampledCurrents
-} from './sampling.js';
-import { initFarfield, calcRadiatedPower, calcDirectivity } from './farfield.js';
+import { calcRadiatedPower, calcDirectivity } from './farfield.js';
 import { computeObserverDFT } from './dft.js';
 import { postProcessSParameters } from './sparameters.js';
-import { runFDTDCluster } from './fdtdSolver.js';
+import { selectBackend, listBackends } from './backends/registry.js';
+import { loadScenario, listScenarios, buildProblemFromScenario } from './scenario.js';
+
+// Scenario run when /simulate is called without an explicit { scenario } body.
+// Override with the FDTD_SCENARIO env var.
+const DEFAULT_SCENARIO = process.env.FDTD_SCENARIO || 'ifa-dualband-baseline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +35,9 @@ let simState = {
   error: null,
   results: null,        // final results JSON (populated after done)
   voltageHistory: [],   // real-time voltage samples [{time_ns, value}]
+  requestedBackend: 'auto', // what the client asked for
+  backend: null,        // what actually ran (resolved by the registry)
+  scenario: DEFAULT_SCENARIO, // which scenario JSON is loaded
 };
 
 // SSE clients
@@ -53,99 +52,19 @@ function sendSSE(event, data) {
 
 // ── Simulation Setup & Run ───────────────────────────────────────────────────
 
-function buildSimulationProblem() {
-  const courantFactor = 0.9;
-  const numberOfCellsPerWavelength = 20;
-  const numberOfTimeSteps = 7000;
-
-  const dx = 0.262e-3, dy = 0.4e-3, dz = 0.4e-3;
-
-  const boundary = {
-    type_xn: 'cpml', type_xp: 'cpml',
-    type_yn: 'cpml', type_yp: 'cpml',
-    type_zn: 'cpml', type_zp: 'cpml',
-    air_buffer_xn: 10, air_buffer_xp: 10,
-    air_buffer_yn: 10, air_buffer_yp: 10,
-    air_buffer_zn: 10, air_buffer_zp: 10,
-    cpml_cells_xn: 8, cpml_cells_xp: 8,
-    cpml_cells_yn: 8, cpml_cells_yp: 8,
-    cpml_cells_zn: 8, cpml_cells_zp: 8,
-    cpml_order: 3, cpml_sigma_factor: 1.3,
-    cpml_kappa_max: 7, cpml_alpha_min: 0, cpml_alpha_max: 0.05
-  };
-
-  const materialTypes = [
-    { eps_r: 1, mu_r: 1, sigma_e: 0, sigma_m: 0 },
-    { eps_r: 1, mu_r: 1, sigma_e: 1e10, sigma_m: 0 },
-    { eps_r: 1, mu_r: 1, sigma_e: 0, sigma_m: 1e10 },
-    { eps_r: 2.2, mu_r: 1, sigma_e: 0, sigma_m: 0 }
-  ];
-
-  const bricks = [
-    { min_x: -0.787e-3, min_y: 0, min_z: 0, max_x: 0, max_y: 40e-3, max_z: 40e-3, material_type: 4 },
-    { min_x: 0, min_y: 0, min_z: 24e-3, max_x: 0, max_y: 28.4e-3, max_z: 26.4e-3, material_type: 2 },
-    { min_x: 0, min_y: 16e-3, min_z: 30e-3, max_x: 0, max_y: 28.4e-3, max_z: 32.4e-3, material_type: 2 },
-    { min_x: 0, min_y: 26e-3, min_z: 8.4e-3, max_x: 0, max_y: 28.4e-3, max_z: 32.4e-3, material_type: 2 },
-    { min_x: 0, min_y: 20.8e-3, min_z: 16e-3, max_x: 0, max_y: 23.2e-3, max_z: 32.4e-3, material_type: 2 },
-    { min_x: -0.787e-3, min_y: 16e-3, min_z: 30e-3, max_x: 0, max_y: 16e-3, max_z: 32.4e-3, material_type: 2 },
-    { min_x: -0.787e-3, min_y: 0, min_z: 0, max_x: -0.787e-3, max_y: 16e-3, max_z: 40e-3, material_type: 2 }
-  ];
-
-  const grid = buildGrid({ dx, dy, dz, boundary, bricks, spheres: [], courantFactor, numberOfTimeSteps });
-  console.log(`Grid: ${grid.nx} x ${grid.ny} x ${grid.nz}`);
-
-  const matGrid = buildMaterialGrid(grid, bricks, []);
-  const matComps = computeMaterialComponents(matGrid, materialTypes, grid);
-  applyPECPlates(bricks, materialTypes, matComps, grid);
-
-  const dt = grid.dt;
-  let coeffs = computeGeneralCoefficients(matComps, grid);
-  const cpml = initCPML(boundary, coeffs, grid);
-
-  let waveforms = { gaussian: [{ number_of_cells_per_wavelength: 0 }, { number_of_cells_per_wavelength: 15 }] };
-  waveforms = initWaveforms(waveforms, numberOfTimeSteps, dt, numberOfCellsPerWavelength, [dx, dy, dz]);
-
-  const voltageSources = [{
-    min_x: -0.787e-3, min_y: 0, min_z: 24e-3, max_x: 0, max_y: 0, max_z: 26.4e-3,
-    direction: 'xp', resistance: 50, magnitude: 1, waveform_type: 'gaussian', waveform_index: 1
-  }];
-  initVoltageSources(voltageSources, waveforms, grid);
-  applyLumpedElementCoefficients(coeffs, grid, dt, voltageSources, [], [], [], [], []);
-
-  const sampledVoltages = [{
-    min_x: -0.787e-3, min_y: 0, min_z: 24.4e-3, max_x: 0, max_y: 0, max_z: 26.4e-3,
-    direction: 'xp', label: 'v1'
-  }];
-  const sampledCurrents = [{
-    min_x: -0.39e-3, min_y: 0, min_z: 24e-3, max_x: -0.39e-3, max_y: 0, max_z: 26.4e-3,
-    direction: 'xp', label: 'i1'
-  }];
-  const ports = [{
-    sampled_voltage_index: 1, sampled_current_index: 1,
-    impedance: 50, is_source_port: true
-  }];
-  const sampledEFields = [];
-  const sampledHFields = [];
-  initSampledVoltages(sampledVoltages, grid);
-  initSampledCurrents(sampledCurrents, grid);
-  initSampledElectricFields(sampledEFields, grid);
-  initSampledMagneticFields(sampledHFields, grid);
-
-  const frequencies = [2.4e9, 5.8e9];
-  const farfield = initFarfield({ frequencies, number_of_cells_from_outer_boundary: 13 }, grid);
-
-  return {
-    grid, coeffs, cpml,
-    samplers: { sampledVoltages, sampledCurrents, sampledEFields, sampledHFields },
-    sources: { voltageSources, currentSources: [], inductors: [], diodes: [] },
-    farfield, ports, frequencies,
-    numberOfTimeSteps, dt
-  };
+// Build the simulation problem from a named scenario JSON (js_fdtd/scenarios/).
+// The geometry/materials/sources/step-count all live in the scenario file now;
+// see src/scenario.js. FDTD_STEPS still overrides the step count for experiments.
+function buildSimulationProblem(scenarioName = DEFAULT_SCENARIO) {
+  const scenario = loadScenario(scenarioName);
+  console.log(`Scenario: ${scenario.name || scenarioName}`);
+  return buildProblemFromScenario(scenario);
 }
 
 function postProcessResults(sim) {
   const { ports, samplers, farfield, frequencies, dt, grid } = sim;
-  const maxFreq = 10e9, fStep = 20e6;
+  const maxFreq = sim.dft?.maxFreq ?? 10e9;
+  const fStep = sim.dft?.step ?? 20e6;
   const nFreqs = Math.floor(maxFreq / fStep);
   const freqArr = new Float64Array(nFreqs);
   for (let i = 0; i < nFreqs; i++) freqArr[i] = (i + 1) * fStep;
@@ -195,6 +114,8 @@ function postProcessResults(sim) {
   return {
     meta: {
       generated: new Date().toISOString(),
+      scenario: sim.meta?.name ?? null,
+      description: sim.meta?.description ?? null,
       numberOfTimeSteps, dt,
       frequencies_Hz: Array.from(freqArr)
     },
@@ -215,7 +136,7 @@ function postProcessResults(sim) {
   };
 }
 
-async function runSimulation() {
+async function runSimulation(requestedBackend = 'auto', scenarioName = DEFAULT_SCENARIO) {
   if (simState.status === 'running' || simState.status === 'initializing') {
     return;
   }
@@ -225,16 +146,17 @@ async function runSimulation() {
     status: 'initializing', step: 0, total: 0,
     elapsed: 0, percent: '0.0', error: null,
     results: null, voltageHistory: [],
+    requestedBackend, backend: null, scenario: scenarioName,
   };
-  sendSSE('status', { status: 'initializing' });
+  sendSSE('status', { status: 'initializing', requestedBackend, scenario: scenarioName });
 
   let sim;
   try {
-    console.log('Building simulation problem...');
-    sim = buildSimulationProblem();
+    console.log(`Building simulation problem from scenario "${scenarioName}"...`);
+    sim = buildSimulationProblem(scenarioName);
     simState.total = sim.numberOfTimeSteps;
     simState.status = 'running';
-    sendSSE('status', { status: 'running', total: sim.numberOfTimeSteps });
+    sendSSE('status', { status: 'running', total: sim.numberOfTimeSteps, scenario: scenarioName });
   } catch (err) {
     simState.status = 'error';
     simState.error = err.message;
@@ -244,14 +166,22 @@ async function runSimulation() {
   }
 
   try {
-    console.log('Running Multithreaded WASM SIMD Cluster with SSE streaming...');
     const wasmPath = path.join(__dirname, '../build/fdtd_kernels.wasm');
     const wasmBuffer = fs.readFileSync(wasmPath);
 
-    const gen = runFDTDCluster(
-      sim.grid, sim.coeffs, sim.cpml, sim.samplers, sim.sources,
-      sim.farfield, wasmBuffer, 50
-    );
+    // Resolve the requested compute backend (falls back to wasm-cpu).
+    const { name: backendName, backend } = await selectBackend(requestedBackend);
+    simState.backend = backendName;
+    console.log(`Running FDTD on backend "${backendName}" (requested "${requestedBackend}") with SSE streaming...`);
+    sendSSE('status', { status: 'running', total: sim.numberOfTimeSteps, backend: backendName, requestedBackend });
+
+    const problem = {
+      grid: sim.grid, coeffs: sim.coeffs, cpml: sim.cpml,
+      samplers: sim.samplers, sources: sim.sources, ff: sim.farfield,
+      wasmBuffer, options: { batchSize: 50 },
+    };
+
+    const gen = backend.run(problem);
 
     for await (const snap of gen) {
       simState.step = snap.step;
@@ -273,6 +203,7 @@ async function runSimulation() {
         percent: snap.percent,
         voltage: snap.voltage,
         time_ns: snap.time_ns,
+        backend: snap.backend ?? simState.backend,
       });
 
       if (snap.step % 500 === 0 || snap.step === snap.total) {
@@ -326,10 +257,68 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({ error: 'Simulation already running' }));
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, message: 'Simulation started' }));
-    // Start simulation asynchronously
-    runSimulation();
+    // Read the requested backend from the JSON body: { backend: 'auto'|'webgpu'|... }
+    let body = '';
+    req.on('data', chunk => { body += chunk; if (body.length > 1e6) req.destroy(); });
+    req.on('end', () => {
+      let requestedBackend = 'auto';
+      let scenario = DEFAULT_SCENARIO;
+      try {
+        if (body) {
+          const parsed = JSON.parse(body);
+          requestedBackend = parsed.backend || 'auto';
+          scenario = parsed.scenario || DEFAULT_SCENARIO;
+        }
+      } catch { /* ignore */ }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, message: 'Simulation started', requestedBackend, scenario }));
+      // Start simulation asynchronously
+      runSimulation(requestedBackend, scenario);
+    });
+    return;
+  }
+
+  // ── GET /scenarios ─────────────────────────────────────────────────────
+  // Lists the example scenario JSON files the client can run. Each entry
+  // carries its name/description and step count so a picker can show them.
+  if (pathname === '/scenarios' && req.method === 'GET') {
+    try {
+      const scenarios = listScenarios().map(name => {
+        const s = loadScenario(name);
+        return {
+          name,
+          title: s.name || name,
+          description: s.description || '',
+          numberOfTimeSteps: s.numberOfTimeSteps ?? null,
+        };
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ scenarios, default: DEFAULT_SCENARIO }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── GET /backends ──────────────────────────────────────────────────────
+  // Real availability on THIS engine process — what will actually run when you
+  // hit Run. wasm-cpu is always present; webgpu (Node/Dawn) and cuda depend on
+  // optional deps being installed/built here.
+  if (pathname === '/backends' && req.method === 'GET') {
+    listBackends().then(list => {
+      const backends = list.map(b => ({
+        name: b.name,
+        available: b.available,
+        detail: b.detail,
+        location: 'server',
+      }));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ backends }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
     return;
   }
 
@@ -350,6 +339,8 @@ const server = http.createServer((req, res) => {
       total: simState.total,
       elapsed: simState.elapsed,
       percent: simState.percent,
+      backend: simState.backend,
+      requestedBackend: simState.requestedBackend,
     })}\n\n`);
 
     // If we already have voltage history, send it as a batch
@@ -378,6 +369,9 @@ const server = http.createServer((req, res) => {
       percent: simState.percent,
       error: simState.error,
       hasResults: simState.results !== null,
+      backend: simState.backend,
+      requestedBackend: simState.requestedBackend,
+      scenario: simState.scenario,
     }));
     return;
   }
@@ -401,8 +395,11 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`\n🔬 FDTD Simulation Server running at http://localhost:${PORT}`);
-  console.log(`   POST /simulate  — start simulation`);
+  console.log(`   POST /simulate  — start simulation  (body: { backend, scenario })`);
+  console.log(`   GET  /scenarios — list example scenarios`);
   console.log(`   GET  /stream    — SSE real-time stream`);
   console.log(`   GET  /status    — current state`);
-  console.log(`   GET  /results   — final results\n`);
+  console.log(`   GET  /results   — final results`);
+  console.log(`   Scenarios: ${listScenarios().join(', ')}`);
+  console.log(`   Default scenario: ${DEFAULT_SCENARIO}\n`);
 });

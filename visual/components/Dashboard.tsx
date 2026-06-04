@@ -7,7 +7,10 @@ import StatsBar from "@/components/StatsBar";
 import FileUpload from "@/components/FileUpload";
 import SimulationControls from "@/components/SimulationControls";
 import SParamChart from "@/components/SParamChart";
+import SmithChart from "@/components/SmithChart";
+import PolarPattern from "@/components/PolarPattern";
 import VoltageWaveform from "@/components/VoltageWaveform";
+import VoltageSpectrum from "@/components/VoltageSpectrum";
 import { useSimulation } from "@/lib/useSimulation";
 import {
   type SimulationData,
@@ -40,6 +43,28 @@ const RadiationPattern3D = dynamic(
 
 interface DashboardProps {
   initialData: SimulationData | null;
+}
+
+// Detect up to two resonant dips (< -6 dB) in S11 to use as plot markers;
+// fall back to the IFA design frequencies when no clear resonance is present.
+function getMarkerFreqs(data: SimulationData): number[] {
+  const sp = data.sparams?.[0];
+  if (!sp?.magnitude_dB?.length) return [2.4, 5.8];
+  const dips: { f: number; mag: number }[] = [];
+  const mag = sp.magnitude_dB;
+  for (let i = 1; i < mag.length - 1; i++) {
+    const m = mag[i];
+    if (m == null || !isFinite(m) || m > -6) continue;
+    if (m <= (mag[i - 1] ?? 0) && m <= (mag[i + 1] ?? 0)) {
+      dips.push({ f: sp.frequencies_GHz[i], mag: m });
+    }
+  }
+  if (dips.length === 0) return [2.4, 5.8];
+  dips.sort((a, b) => a.mag - b.mag);
+  return dips
+    .slice(0, 2)
+    .map((d) => Math.round(d.f * 100) / 100)
+    .sort((a, b) => a - b);
 }
 
 export default function Dashboard({ initialData }: DashboardProps) {
@@ -116,7 +141,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
               animate={{ opacity: 1, scale: 1 }}
               className="demo-badge"
             >
-              ⚠ Demo Data — Run simulation or upload results
+              Demo Data — Run simulation or upload results
             </motion.span>
           )}
           {isLiveData && (
@@ -125,7 +150,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
               animate={{ opacity: 1, scale: 1 }}
               className="live-badge"
             >
-              ● Live Simulation Data
+              Live Simulation Data
             </motion.span>
           )}
         </div>
@@ -140,15 +165,24 @@ export default function Dashboard({ initialData }: DashboardProps) {
         percent={sim.percent}
         error={sim.error}
         onStart={sim.startSimulation}
+        backendChoice={sim.backendChoice}
+        onBackendChange={sim.setBackendChoice}
+        scenarios={sim.scenarios}
+        scenario={sim.scenario}
+        onScenarioChange={sim.setScenario}
       />
 
       {/* Stats Bar */}
-      <StatsBar meta={displayData.meta} />
+      <StatsBar
+        meta={displayData.meta}
+        backendChoice={sim.backendChoice}
+        activeBackend={sim.activeBackend}
+      />
 
       {/* Dashboard Grid */}
       <main className="dashboard-grid">
         {/* 3D Antenna Scene */}
-        <GlassPanel title="3D Antenna Model" icon="📡" delay={0.1}>
+        <GlassPanel title="3D Antenna Model" index="01" delay={0.1}>
           <Suspense
             fallback={
               <div className="antenna-canvas-container flex items-center justify-center">
@@ -161,7 +195,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
         </GlassPanel>
 
         {/* S-Parameters */}
-        <GlassPanel title="S-Parameters (S11)" icon="📈" delay={0.2}>
+        <GlassPanel title="S-Parameters (S11)" index="02" delay={0.2}>
           {displayData.sparams?.length > 0 ? (
             <SParamChart data={displayData.sparams[0]} />
           ) : (
@@ -176,7 +210,7 @@ export default function Dashboard({ initialData }: DashboardProps) {
         </GlassPanel>
 
         {/* Radiation Pattern */}
-        <GlassPanel title="Radiation Pattern" icon="🌐" delay={0.3}>
+        <GlassPanel title="Radiation Pattern" index="03" delay={0.3}>
           {displayData.farfield?.length > 0 ? (
             <Suspense
               fallback={
@@ -205,13 +239,52 @@ export default function Dashboard({ initialData }: DashboardProps) {
               ? "Time-Domain Voltage (LIVE)"
               : "Time-Domain Voltage"
           }
-          icon="⚡"
+          index="04"
           delay={0.4}
         >
           {voltageData ? (
             <VoltageWaveform
               data={voltageData}
               isLive={sim.status === "running"}
+            />
+          ) : (
+            <div className="chart-container flex items-center justify-center h-[240px]">
+              <span className="text-sm text-gray-500">No voltage data</span>
+            </div>
+          )}
+        </GlassPanel>
+
+        {/* Smith Chart — uses S11 magnitude + phase */}
+        <GlassPanel title="Smith Chart (S11)" index="05" delay={0.5}>
+          {displayData.sparams?.length > 0 ? (
+            <SmithChart
+              data={displayData.sparams[0]}
+              markers={getMarkerFreqs(displayData)}
+            />
+          ) : (
+            <div className="chart-container flex items-center justify-center h-[280px]">
+              <span className="text-sm text-gray-500">No S-parameter data available</span>
+            </div>
+          )}
+        </GlassPanel>
+
+        {/* 2D Polar Radiation Cuts */}
+        <GlassPanel title="Polar Pattern Cuts" index="06" delay={0.6}>
+          {displayData.farfield?.length > 0 ? (
+            <PolarPattern data={displayData.farfield} />
+          ) : (
+            <div className="chart-container flex items-center justify-center h-[280px]">
+              <span className="text-sm text-gray-500">No farfield data available</span>
+            </div>
+          )}
+        </GlassPanel>
+
+        {/* Voltage Spectrum (FFT) */}
+        <GlassPanel title="Voltage Spectrum (FFT)" index="07" delay={0.7}>
+          {voltageData ? (
+            <VoltageSpectrum
+              data={voltageData}
+              markers={getMarkerFreqs(displayData)}
             />
           ) : (
             <div className="chart-container flex items-center justify-center h-[240px]">

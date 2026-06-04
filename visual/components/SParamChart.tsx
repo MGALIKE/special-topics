@@ -45,8 +45,8 @@ export default function SParamChart({ data }: SParamChartProps) {
         <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="magGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
+              <stop offset="5%" stopColor="#f4f4f1" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#f4f4f1" stopOpacity={0} />
             </linearGradient>
             <filter id="glow">
               <feGaussianBlur stdDeviation="2" result="coloredBlur" />
@@ -56,52 +56,52 @@ export default function SParamChart({ data }: SParamChartProps) {
               </feMerge>
             </filter>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1a2744" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
           <XAxis
             dataKey="freq"
-            stroke="#4a5568"
-            tick={{ fill: "#718096", fontSize: 11 }}
+            stroke="#f4f4f1"
+            tick={{ fill: "#9a9a9a", fontSize: 11 }}
             label={{
               value: "Frequency (GHz)",
               position: "insideBottom",
               offset: -2,
-              fill: "#718096",
+              fill: "#9a9a9a",
               fontSize: 11,
             }}
           />
           <YAxis
             yAxisId="left"
-            stroke="#4a5568"
-            tick={{ fill: "#00d4ff", fontSize: 11 }}
+            stroke="#f4f4f1"
+            tick={{ fill: "#f4f4f1", fontSize: 11 }}
             domain={[Math.floor(minMag / 5) * 5, 0]}
             label={{
               value: "|S11| (dB)",
               angle: -90,
               position: "insideLeft",
-              fill: "#00d4ff",
+              fill: "#f4f4f1",
               fontSize: 11,
             }}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
-            stroke="#4a5568"
-            tick={{ fill: "#ff6b35", fontSize: 11 }}
+            stroke="#f4f4f1"
+            tick={{ fill: "#ff3b1f", fontSize: 11 }}
             domain={[-180, 180]}
             label={{
               value: "Phase (°)",
               angle: 90,
               position: "insideRight",
-              fill: "#ff6b35",
+              fill: "#ff3b1f",
               fontSize: 11,
             }}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgba(10, 22, 40, 0.95)",
-              border: "1px solid #1a2744",
-              borderRadius: "8px",
-              color: "#e2e8f0",
+              backgroundColor: "#151515",
+              border: "1.5px solid #f4f4f1",
+              borderRadius: "0px",
+              color: "#f4f4f1",
               fontSize: 12,
             }}
             formatter={(value: number, name: string) => [
@@ -111,7 +111,7 @@ export default function SParamChart({ data }: SParamChartProps) {
             labelFormatter={(label: number) => `${label.toFixed(2)} GHz`}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, color: "#718096" }}
+            wrapperStyle={{ fontSize: 11, color: "#9a9a9a" }}
             formatter={(value: string) =>
               value === "mag" ? "|S11| Magnitude" : "∠S11 Phase"
             }
@@ -119,36 +119,36 @@ export default function SParamChart({ data }: SParamChartProps) {
           <ReferenceLine
             yAxisId="left"
             y={-10}
-            stroke="#ff6b35"
+            stroke="#ff3b1f"
             strokeDasharray="5 5"
             strokeOpacity={0.5}
             label={{
               value: "-10 dB",
-              fill: "#ff6b35",
+              fill: "#ff3b1f",
               fontSize: 10,
               position: "right",
             }}
           />
           <ReferenceLine
             x={2.4}
-            stroke="#00d4ff"
+            stroke="#f4f4f1"
             strokeDasharray="3 3"
             strokeOpacity={0.4}
             label={{
               value: "2.4 GHz",
-              fill: "#00d4ff",
+              fill: "#f4f4f1",
               fontSize: 9,
               position: "top",
             }}
           />
           <ReferenceLine
             x={5.8}
-            stroke="#00d4ff"
+            stroke="#f4f4f1"
             strokeDasharray="3 3"
             strokeOpacity={0.4}
             label={{
               value: "5.8 GHz",
-              fill: "#00d4ff",
+              fill: "#f4f4f1",
               fontSize: 9,
               position: "top",
             }}
@@ -157,7 +157,7 @@ export default function SParamChart({ data }: SParamChartProps) {
             yAxisId="left"
             type="monotone"
             dataKey="mag"
-            stroke="#00d4ff"
+            stroke="#f4f4f1"
             strokeWidth={2}
             dot={false}
             filter="url(#glow)"
@@ -166,7 +166,7 @@ export default function SParamChart({ data }: SParamChartProps) {
             yAxisId="right"
             type="monotone"
             dataKey="phase"
-            stroke="#ff6b35"
+            stroke="#ff3b1f"
             strokeWidth={1.5}
             strokeDasharray="4 3"
             dot={false}

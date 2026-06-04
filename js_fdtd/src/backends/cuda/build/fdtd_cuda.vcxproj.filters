@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="..">
+      <UniqueIdentifier>{13ED4249-1F9C-5F0F-2651-29A73F3A7059}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\native">
+      <UniqueIdentifier>{751DE1B9-2CA6-B33D-2A40-92CBD5B002F3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:">
+      <UniqueIdentifier>{F87FD356-0FEB-9BC5-D1FA-368C81420008}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users">
+      <UniqueIdentifier>{707347A1-1ABA-A9B2-9AF4-DE122F5D7F08}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users\jamik">
+      <UniqueIdentifier>{0A9D802E-24FB-1928-89B8-8D8A9B69511D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users\jamik\OneDrive">
+      <UniqueIdentifier>{E417559F-935A-85AA-CBFA-8418BD06C0B0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users\jamik\OneDrive\Desktop">
+      <UniqueIdentifier>{68E47669-79A8-F716-44A9-E89748D1EB03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users\jamik\OneDrive\Desktop\eski_branch">
+      <UniqueIdentifier>{3943370B-25B2-D94A-2BC3-D739DDF462B7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users\jamik\OneDrive\Desktop\eski_branch\js_fdtd">
+      <UniqueIdentifier>{B86042D5-E103-9C06-874E-546A4FD646C1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users\jamik\OneDrive\Desktop\eski_branch\js_fdtd\node_modules">
+      <UniqueIdentifier>{126A39EA-1D28-5689-C126-0DA0AB5837A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users\jamik\OneDrive\Desktop\eski_branch\js_fdtd\node_modules\node-gyp">
+      <UniqueIdentifier>{49558BB4-6D34-CA91-A65D-85A65792DC11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="C:\Users\jamik\OneDrive\Desktop\eski_branch\js_fdtd\node_modules\node-gyp\src">
+      <UniqueIdentifier>{F1003AD6-4B6D-45DF-3F56-5CAC869BF55E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{13ED4249-1F9C-5F0F-2651-29A73F3A7059}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{13ED4249-1F9C-5F0F-2651-29A73F3A7059}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\native">
+      <UniqueIdentifier>{751DE1B9-2CA6-B33D-2A40-92CBD5B002F3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\native\_excluded_files">
+      <UniqueIdentifier>{112ABC60-444B-3406-7FD5-BADF77DE8A6C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\native\binding.cpp">
+      <Filter>..\native</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\jamik\OneDrive\Desktop\eski_branch\js_fdtd\node_modules\node-gyp\src\win_delay_load_hook.cc">
+      <Filter>C:\Users\jamik\OneDrive\Desktop\eski_branch\js_fdtd\node_modules\node-gyp\src</Filter>
+    </ClCompile>
+    <None Include="..\binding.gyp">
+      <Filter>..</Filter>
+    </None>
+    <None Include="..\native\fdtd_cuda.cu">
+      <Filter>..\native\_excluded_files</Filter>
+    </None>
+  </ItemGroup>
+</Project>

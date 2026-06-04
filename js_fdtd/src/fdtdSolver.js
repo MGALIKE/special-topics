@@ -84,9 +84,11 @@ export async function* runFDTDCluster(
     for (let ts = 0; ts < numberOfTimeSteps; ts++) {
       
       // ── 1. Wait for H Bulk Updates & H CPML ──────────────────────────────────
-      // Worker 0 will set mainSignal = 1 and notify.
-      if (Atomics.load(mainSignal, 0) !== 1) {
-        const p = waitAsync(mainSignal, 0, 0);
+      // Worker 0 will set mainSignal = 1 and notify. Loop on the ACTUAL current
+      // value (not a hard-coded expected one) so we re-arm correctly on any
+      // early/spurious wakeup and only proceed once the state is really 1.
+      for (let v = Atomics.load(mainSignal, 0); v !== 1; v = Atomics.load(mainSignal, 0)) {
+        const p = waitAsync(mainSignal, 0, v);
         if (p.async) await p.value;
       }
 
@@ -99,9 +101,9 @@ export async function* runFDTDCluster(
       Atomics.notify(mainSignal, 0, numWorkers);
 
       // ── 2. Wait for E Bulk Updates & E CPML ──────────────────────────────────
-      // Worker 0 will set mainSignal = 3 and notify.
-      if (Atomics.load(mainSignal, 0) !== 3) {
-        const p = waitAsync(mainSignal, 0, 2);
+      // Worker 0 will set mainSignal = 3 and notify. Same race-free loop as phase 1.
+      for (let v = Atomics.load(mainSignal, 0); v !== 3; v = Atomics.load(mainSignal, 0)) {
+        const p = waitAsync(mainSignal, 0, v);
         if (p.async) await p.value;
       }
 

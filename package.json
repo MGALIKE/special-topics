@@ -1,0 +1,12 @@
+{
+  "name": "fdtd-stack",
+  "version": "1.0.0",
+  "description": "FDTD IFA solver — engine server + visual dashboard, launched together",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev.mjs",
+    "start": "node dev.mjs",
+    "install:all": "npm --prefix js_fdtd install && npm --prefix visual install"
+  }
+}

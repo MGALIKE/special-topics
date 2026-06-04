@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+// Local Helvetica family (self-hosted from /public). Swiss / International
+// Typographic Style leans on Helvetica with heavy use of the Bold weight.
+const helvetica = localFont({
+  variable: "--font-helvetica",
   display: "swap",
+  src: [
+    { path: "../public/Helvetica.ttf", weight: "400", style: "normal" },
+    { path: "../public/Helvetica-Oblique.ttf", weight: "400", style: "italic" },
+    { path: "../public/Helvetica-Bold.ttf", weight: "700", style: "normal" },
+    {
+      path: "../public/Helvetica-BoldOblique.ttf",
+      weight: "700",
+      style: "italic",
+    },
+  ],
 });
 
 export const metadata: Metadata = {
@@ -29,10 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable}`}>
-      <body style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}>
-        {children}
-      </body>
+    <html lang="en" className={helvetica.variable}>
+      <body>{children}</body>
     </html>
   );
 }

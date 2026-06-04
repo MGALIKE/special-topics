@@ -49,7 +49,7 @@ function RadPatternMesh({ data, color, opacity = 0.75 }: RadPatternMeshProps) {
     // Color by radius
     const colors = new Float32Array(geo.attributes.position.count * 3);
     const colorObj = new THREE.Color(color);
-    const accentColor = new THREE.Color("#ff6b35");
+    const accentColor = new THREE.Color("#ff3b1f");
     const pos = geo.attributes.position;
 
     for (let i = 0; i < pos.count; i++) {
@@ -87,7 +87,7 @@ function PolarGrid() {
         <mesh key={r}>
           <ringGeometry args={[r - 0.005, r + 0.005, 64]} />
           <meshBasicMaterial
-            color="#1a2744"
+            color="#333333"
             transparent
             opacity={0.4}
             side={THREE.DoubleSide}
@@ -104,7 +104,7 @@ function PolarGrid() {
         const geo = new THREE.BufferGeometry().setFromPoints(pts);
         return (
           <lineSegments key={deg} geometry={geo}>
-            <lineBasicMaterial color="#1a2744" transparent opacity={0.3} />
+            <lineBasicMaterial color="#333333" transparent opacity={0.3} />
           </lineSegments>
         );
       })}
@@ -116,7 +116,7 @@ function PolarGrid() {
             key={deg}
             position={[2.7 * Math.cos(rad), 2.7 * Math.sin(rad), 0]}
             fontSize={0.18}
-            color="#4a5568"
+            color="#888888"
           >
             {deg}°
           </Text>
@@ -207,7 +207,7 @@ export default function RadiationPattern3D({ data }: RadiationPattern3DProps) {
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
       >
-        <color attach="background" args={["#060d1a"]} />
+        <color attach="background" args={["#0a0a0a"]} />
 
         <PolarGrid />
 
@@ -215,12 +215,12 @@ export default function RadiationPattern3D({ data }: RadiationPattern3DProps) {
           <group key={`${d.plane}-${d.freq_GHz}`}>
             <RadPatternMesh
               data={d}
-              color={d.plane === "xy" ? "#00d4ff" : "#a78bfa"}
+              color={d.plane === "xy" ? "#ffffff" : "#ff3b1f"}
               opacity={0.4}
             />
             <RadPatternOutline
               data={d}
-              color={d.plane === "xy" ? "#00d4ff" : "#a78bfa"}
+              color={d.plane === "xy" ? "#ffffff" : "#ff3b1f"}
             />
           </group>
         ))}
@@ -228,10 +228,10 @@ export default function RadiationPattern3D({ data }: RadiationPattern3DProps) {
         {/* Legend */}
         {currentData.length > 1 && (
           <>
-            <Text position={[-2.2, -2.7, 0]} fontSize={0.15} color="#00d4ff">
+            <Text position={[-2.2, -2.7, 0]} fontSize={0.15} color="#ffffff">
               ● XY Plane
             </Text>
-            <Text position={[0.5, -2.7, 0]} fontSize={0.15} color="#a78bfa">
+            <Text position={[0.5, -2.7, 0]} fontSize={0.15} color="#ff3b1f">
               ● XZ Plane
             </Text>
           </>

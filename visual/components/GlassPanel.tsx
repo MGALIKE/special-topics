@@ -5,7 +5,10 @@ import { ReactNode } from "react";
 
 interface GlassPanelProps {
   title: string;
+  /** Retained for API compatibility; the Swiss layout renders a numeric index instead. */
   icon?: string;
+  /** Two-digit section index shown flush-left in the panel header. */
+  index?: string;
   children: ReactNode;
   className?: string;
   delay?: number;
@@ -13,7 +16,7 @@ interface GlassPanelProps {
 
 export default function GlassPanel({
   title,
-  icon,
+  index,
   children,
   className = "",
   delay = 0,
@@ -26,8 +29,8 @@ export default function GlassPanel({
       className={`glass-panel group ${className}`}
     >
       <div className="panel-header">
-        <div className="flex items-center gap-2">
-          {icon && <span className="panel-icon">{icon}</span>}
+        <div className="flex items-baseline">
+          {index && <span className="panel-index">{index}</span>}
           <h2 className="panel-title">{title}</h2>
         </div>
         <div className="panel-dot-group">

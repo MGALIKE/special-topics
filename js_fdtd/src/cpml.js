@@ -290,7 +290,7 @@ function _initFace_y(face, nc, nx, ny, nz, nxp1, nyp1, nzp1,
     for (let i = 0; i < nx; i++) {
       for (let k = 0; k < nzp1; k++) {
         CPsi_hzy[i * nc * nzp1 + ci * nzp1 + k] =
-          coeffs.Chzex[i * nyp1 * nzp1 + j_h * nzp1 + k] * dy;
+          coeffs.Chzex[i * ny * nzp1 + j_h * nzp1 + k] * dy;
       }
     }
     if (j_e >= 0 && j_e < nyp1) {
@@ -323,7 +323,7 @@ function _initFace_y(face, nc, nx, ny, nz, nxp1, nyp1, nzp1,
     }
     for (let i = 0; i < nx; i++) {
       for (let k = 0; k < nzp1; k++) {
-        coeffs.Chzex[i * nyp1 * nzp1 + j_h * nzp1 + k] /= km;
+        coeffs.Chzex[i * ny * nzp1 + j_h * nzp1 + k] /= km;
       }
     }
     if (j_e >= 0 && j_e < nyp1) {
@@ -381,7 +381,7 @@ function _initFace_z(face, nc, nx, ny, nz, nxp1, nyp1, nzp1,
     for (let i = 0; i < nxp1; i++) {
       for (let j = 0; j < ny; j++) {
         CPsi_hxz[i * ny * nc + j * nc + ci] =
-          coeffs.Chxey[i * ny * nzp1 + j * nzp1 + k_h] * dz;
+          coeffs.Chxey[i * ny * nz + j * nz + k_h] * dz;
       }
     }
     for (let i = 0; i < nx; i++) {
@@ -415,7 +415,7 @@ function _initFace_z(face, nc, nx, ny, nz, nxp1, nyp1, nzp1,
 
     for (let i = 0; i < nxp1; i++) {
       for (let j = 0; j < ny; j++) {
-        coeffs.Chxey[i * ny * nzp1 + j * nzp1 + k_h] /= km;
+        coeffs.Chxey[i * ny * nz + j * nz + k_h] /= km;
       }
     }
     for (let i = 0; i < nx; i++) {
@@ -542,20 +542,25 @@ export function updateMagneticCPML(cpml, fields, grid) {
     for (let ci = 0; ci < nc; ci++) {
       const bm = b_m[ci], am = a_m[ci];
       const j_h = j_m_start + ci;
+      // Magnetic CPML for Hx is driven by the ∂Ez/∂y curl term (pairs with
+      // CPsi_hxy = Chxez·dy), so Psi accumulates Ez differences in y — NOT Hx.
+      // (Differencing Hx here was a bug that made the YN/YP PML add energy
+      // instead of absorbing it, blowing the run up to NaN within ~11 steps.)
       for (let i = 0; i < nxp1; i++) {
         for (let k = 0; k < nz; k++) {
           const pi = i * nc * nz + ci * nz + k;
-          const hx1 = Hx[i * ny * nz + (j_h + 1) * nz + k];
-          const hx0 = Hx[i * ny * nz + j_h       * nz + k];
-          Psi_hxy[pi] = bm * Psi_hxy[pi] + am * (hx1 - hx0);
+          const ez1 = Ez[i * nyp1 * nz + (j_h + 1) * nz + k];
+          const ez0 = Ez[i * nyp1 * nz + j_h       * nz + k];
+          Psi_hxy[pi] = bm * Psi_hxy[pi] + am * (ez1 - ez0);
         }
       }
+      // Hz is driven by ∂Ex/∂y (pairs with CPsi_hzy = Chzex·dy) → Ex differences.
       for (let i = 0; i < nx; i++) {
         for (let k = 0; k < nzp1; k++) {
           const pi = i * nc * nzp1 + ci * nzp1 + k;
-          const hz1 = Hz[i * ny * nzp1 + (j_h + 1) * nzp1 + k];
-          const hz0 = Hz[i * ny * nzp1 + j_h        * nzp1 + k];
-          Psi_hzy[pi] = bm * Psi_hzy[pi] + am * (hz1 - hz0);
+          const ex1 = Ex[i * nyp1 * nzp1 + (j_h + 1) * nzp1 + k];
+          const ex0 = Ex[i * nyp1 * nzp1 + j_h        * nzp1 + k];
+          Psi_hzy[pi] = bm * Psi_hzy[pi] + am * (ex1 - ex0);
         }
       }
     }
@@ -589,20 +594,22 @@ export function updateMagneticCPML(cpml, fields, grid) {
     for (let ci = 0; ci < nc; ci++) {
       const bm = b_m[ci], am = a_m[ci];
       const j_h = j_m_start + ci;
+      // See YN above: Hx CPML is driven by ∂Ez/∂y, Hz by ∂Ex/∂y — difference the
+      // E-fields, not Hx/Hz.
       for (let i = 0; i < nxp1; i++) {
         for (let k = 0; k < nz; k++) {
           const pi = i * nc * nz + ci * nz + k;
-          const hx1 = Hx[i * ny * nz + (j_h + 1) * nz + k];
-          const hx0 = Hx[i * ny * nz + j_h       * nz + k];
-          Psi_hxy[pi] = bm * Psi_hxy[pi] + am * (hx1 - hx0);
+          const ez1 = Ez[i * nyp1 * nz + (j_h + 1) * nz + k];
+          const ez0 = Ez[i * nyp1 * nz + j_h       * nz + k];
+          Psi_hxy[pi] = bm * Psi_hxy[pi] + am * (ez1 - ez0);
         }
       }
       for (let i = 0; i < nx; i++) {
         for (let k = 0; k < nzp1; k++) {
           const pi = i * nc * nzp1 + ci * nzp1 + k;
-          const hz1 = Hz[i * ny * nzp1 + (j_h + 1) * nzp1 + k];
-          const hz0 = Hz[i * ny * nzp1 + j_h        * nzp1 + k];
-          Psi_hzy[pi] = bm * Psi_hzy[pi] + am * (hz1 - hz0);
+          const ex1 = Ex[i * nyp1 * nzp1 + (j_h + 1) * nzp1 + k];
+          const ex0 = Ex[i * nyp1 * nzp1 + j_h        * nzp1 + k];
+          Psi_hzy[pi] = bm * Psi_hzy[pi] + am * (ex1 - ex0);
         }
       }
     }

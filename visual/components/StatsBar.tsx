@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { type BackendChoice, BACKEND_SHORT_LABELS } from "@/lib/backends";
 
 interface StatsBarProps {
   meta: {
@@ -9,6 +10,10 @@ interface StatsBarProps {
     generated: string;
     frequencies_Hz?: number[];
   };
+  /** Currently selected compute engine (the active user choice). */
+  backendChoice?: BackendChoice;
+  /** The engine that actually ran the last/current sim (server-resolved). */
+  activeBackend?: string | null;
 }
 
 function StatItem({
@@ -38,7 +43,14 @@ function StatItem({
   );
 }
 
-export default function StatsBar({ meta }: StatsBarProps) {
+export default function StatsBar({ meta, backendChoice = "auto", activeBackend = null }: StatsBarProps) {
+  // Prefer the engine that actually ran; fall back to the user's choice label.
+  const engineLabel = activeBackend
+    ? (BACKEND_SHORT_LABELS[activeBackend as BackendChoice] ?? activeBackend)
+    : BACKEND_SHORT_LABELS[backendChoice];
+  // If the resolved engine differs from a concrete request, hint at the fallback.
+  const fellBack =
+    !!activeBackend && backendChoice !== "auto" && activeBackend !== backendChoice;
   const freqRange = meta.frequencies_Hz
     ? `${(meta.frequencies_Hz[0] / 1e9).toFixed(2)} – ${(
         meta.frequencies_Hz[meta.frequencies_Hz.length - 1] / 1e9
@@ -74,6 +86,26 @@ export default function StatsBar({ meta }: StatsBarProps) {
         value={new Date(meta.generated).toLocaleString()}
         delay={0.6}
       />
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+        className="stat-item"
+      >
+        <span className="stat-label">Engine</span>
+        <span
+          className="engine-badge"
+          title={
+            fellBack
+              ? `Requested ${BACKEND_SHORT_LABELS[backendChoice]}, ran ${engineLabel} (fallback)`
+              : `Engine: ${engineLabel}`
+          }
+        >
+          <span className="engine-badge-dot" />
+          {engineLabel}
+          {fellBack && <span className="engine-badge-fallback"> ⤳</span>}
+        </span>
+      </motion.div>
     </motion.div>
   );
 }

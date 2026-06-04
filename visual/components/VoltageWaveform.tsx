@@ -110,46 +110,46 @@ export default function VoltageWaveform({
             <linearGradient id="voltGradient" x1="0" y1="0" x2="0" y2="1">
               <stop
                 offset="5%"
-                stopColor={isLive ? "#00d4ff" : "#34d399"}
+                stopColor={isLive ? "#f4f4f1" : "#f4f4f1"}
                 stopOpacity={0.3}
               />
               <stop
                 offset="95%"
-                stopColor={isLive ? "#00d4ff" : "#34d399"}
+                stopColor={isLive ? "#f4f4f1" : "#f4f4f1"}
                 stopOpacity={0}
               />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1a2744" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
           <XAxis
             dataKey="t"
-            stroke="#4a5568"
-            tick={{ fill: "#718096", fontSize: 11 }}
+            stroke="#f4f4f1"
+            tick={{ fill: "#9a9a9a", fontSize: 11 }}
             label={{
               value: "Time (ns)",
               position: "insideBottom",
               offset: -2,
-              fill: "#718096",
+              fill: "#9a9a9a",
               fontSize: 11,
             }}
           />
           <YAxis
-            stroke="#4a5568"
-            tick={{ fill: isLive ? "#00d4ff" : "#34d399", fontSize: 11 }}
+            stroke="#f4f4f1"
+            tick={{ fill: isLive ? "#f4f4f1" : "#f4f4f1", fontSize: 11 }}
             label={{
               value: "Voltage (V)",
               angle: -90,
               position: "insideLeft",
-              fill: isLive ? "#00d4ff" : "#34d399",
+              fill: isLive ? "#f4f4f1" : "#f4f4f1",
               fontSize: 11,
             }}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgba(10, 22, 40, 0.95)",
-              border: "1px solid #1a2744",
-              borderRadius: "8px",
-              color: "#e2e8f0",
+              backgroundColor: "#151515",
+              border: "1.5px solid #f4f4f1",
+              borderRadius: "0px",
+              color: "#f4f4f1",
               fontSize: 12,
             }}
             formatter={(value: number) => [
@@ -161,7 +161,7 @@ export default function VoltageWaveform({
           {!isLive && (
             <ReferenceLine
               x={cursor}
-              stroke="#ff6b35"
+              stroke="#ff3b1f"
               strokeWidth={2}
               strokeOpacity={0.8}
             />
@@ -169,7 +169,7 @@ export default function VoltageWaveform({
           <Area
             type="monotone"
             dataKey="v"
-            stroke={isLive ? "#00d4ff" : "#34d399"}
+            stroke={isLive ? "#f4f4f1" : "#f4f4f1"}
             strokeWidth={1.5}
             fill="url(#voltGradient)"
             isAnimationActive={false}
